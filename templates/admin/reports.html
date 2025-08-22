@@ -1,0 +1,213 @@
+
+{% extends "base.html" %}
+
+{% block title %}Laporan Bisnis{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar"></i> Laporan Bisnis & Analisa</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Generate Report Form -->
+                    <form method="POST" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">Dari Tanggal</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                                           value="" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">Sampai Tanggal</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                                           value="" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary d-block">
+                                        <i class="fas fa-file-pdf"></i> Download Laporan PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4>{{ stats.total_revenue | currency }}</h4>
+                                            <p class="mb-0">Total Pendapatan</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-coins fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4>{{ stats.total_profit | currency }}</h4>
+                                            <p class="mb-0">Total Keuntungan</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-chart-line fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4>{{ stats.total_loss | currency }}</h4>
+                                            <p class="mb-0">Total Kerugian</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-chart-line-down fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h4>{{ stats.total_transactions }}</h4>
+                                            <p class="mb-0">Total Transaksi</p>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-receipt fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Best Selling Items -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-star"></i> Item Terlaris (30 hari terakhir)</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if stats.best_selling %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Rank</th>
+                                                    <th>Nama Item</th>
+                                                    <th>Terjual</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item, qty in stats.best_selling %}
+                                                <tr>
+                                                    <td>
+                                                        {% if loop.index == 1 %}
+                                                            <span class="badge bg-warning">🥇</span>
+                                                        {% elif loop.index == 2 %}
+                                                            <span class="badge bg-secondary">🥈</span>
+                                                        {% elif loop.index == 3 %}
+                                                            <span class="badge bg-primary">🥉</span>
+                                                        {% else %}
+                                                            {{ loop.index }}
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ item }}</td>
+                                                    <td><span class="badge bg-success">{{ qty }}</span></td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted text-center">Belum ada data penjualan</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Low Stock Items -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-exclamation-triangle text-warning"></i> Stok Rendah</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if stats.low_stock_items %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Item</th>
+                                                    <th>Stok</th>
+                                                    <th>Min</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in stats.low_stock_items %}
+                                                <tr>
+                                                    <td>{{ item.product.name[:20] }}</td>
+                                                    <td>{{ item.current_stock }}</td>
+                                                    <td>{{ item.minimum_stock }}</td>
+                                                    <td>
+                                                        {% if item.current_stock == 0 %}
+                                                            <span class="badge bg-danger">Habis</span>
+                                                        {% elif item.current_stock <= item.minimum_stock %}
+                                                            <span class="badge bg-warning">Rendah</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted text-center">Semua stok dalam kondisi baik</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default dates
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    document.getElementById('end_date').value = today.toISOString().split('T')[0];
+    document.getElementById('start_date').value = thirtyDaysAgo.toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

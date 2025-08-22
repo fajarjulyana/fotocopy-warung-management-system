@@ -1,0 +1,135 @@
+
+{% extends "base.html" %}
+
+{% block title %}Daftar Produk{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Manajemen Produk</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('add_product') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>
+            Tambah Produk
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if products %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nama Produk</th>
+                        <th>Harga Beli</th>
+                        <th>Harga Jual</th>
+                        <th>Stok Awal</th>
+                        <th>Stok Akhir</th>
+                        <th>Profit</th>
+                        <th>Codes</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td><code>{{ product.id }}</code></td>
+                        <td>{{ product.name }}</td>
+                        <td>{{ format_currency(product.purchase_price) }}</td>
+                        <td>{{ format_currency(product.selling_price) }}</td>
+                        <td>{{ product.initial_stock }}</td>
+                        <td>{{ product.current_stock }}</td>
+                        <td>
+                            <span class="badge {% if product.profit > 0 %}bg-success{% elif product.profit < 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ format_currency(product.profit) }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="showBarcode('{{ product.barcode }}')" title="Barcode">
+                                    <i class="fas fa-barcode"></i>
+                                </button>
+                                <button class="btn btn-outline-info" onclick="showQRCode('{{ product.qr_code }}')" title="QR Code">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                                <a href="{{ url_for('print_product_codes', product_id=product.id) }}" class="btn btn-outline-success" title="Print Codes" target="_blank">
+                                    <i class="fas fa-print"></i>
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn btn-outline-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-outline-danger" onclick="deleteProduct('{{ product.id }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-box fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Belum ada produk</h5>
+            <p class="text-muted">Tambahkan produk pertama Anda</p>
+            <a href="{{ url_for('add_product') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>
+                Tambah Produk
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal untuk menampilkan barcode/QR code -->
+<div class="modal fade" id="codeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="codeModalTitle">Code Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="codeContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showBarcode(code) {
+    document.getElementById('codeModalTitle').textContent = 'Barcode Preview';
+    document.getElementById('codeContainer').innerHTML = `
+        <img src="/api/generate_barcode/${code}" class="img-fluid" alt="Barcode">
+        <p class="mt-2"><code>${code}</code></p>
+    `;
+    new bootstrap.Modal(document.getElementById('codeModal')).show();
+}
+
+function showQRCode(code) {
+    document.getElementById('codeModalTitle').textContent = 'QR Code Preview';
+    document.getElementById('codeContainer').innerHTML = `
+        <img src="/api/generate_qrcode/${code}" class="img-fluid" alt="QR Code">
+        <p class="mt-2"><code>${code}</code></p>
+    `;
+    new bootstrap.Modal(document.getElementById('codeModal')).show();
+}
+
+function deleteProduct(productId) {
+    if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
+        // Implementation for delete
+        window.location.href = `/products/delete/${productId}`;
+    }
+}
+</script>
+{% endblock %}

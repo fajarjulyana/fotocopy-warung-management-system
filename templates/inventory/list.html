@@ -1,0 +1,212 @@
+
+{% extends "base.html" %}
+
+{% block title %}Inventory Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-boxes me-2"></i>
+        Manajemen Inventory
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('add_inventory_item') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>
+            Tambah Item
+        </a>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-boxes fa-2x mb-2"></i>
+                <h4>{{ items|length }}</h4>
+                <p class="mb-0">Total Items</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <h4>{{ items|selectattr('current_stock', 'lt', items|map(attribute='minimum_stock')|first or 5)|list|length }}</h4>
+                <p class="mb-0">Stok Rendah</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-dollar-sign fa-2x mb-2"></i>
+                <h4>{{ format_currency(items|map(attribute='selling_price')|sum) }}</h4>
+                <p class="mb-0">Total Nilai Jual</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                <h4>{{ format_currency((items|map(attribute='selling_price')|sum) - (items|map(attribute='purchase_price')|sum)) }}</h4>
+                <p class="mb-0">Profit Potensial</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Table -->
+<div class="card">
+    <div class="card-body">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Kode</th>
+                        <th>Produk</th>
+                        <th>Harga Beli</th>
+                        <th>Harga Jual</th>
+                        <th>Stok Awal</th>
+                        <th>Stok Saat Ini</th>
+                        <th>Min. Stok</th>
+                        <th>Status</th>
+                        <th>Profit Unit</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <code>{{ item.code }}</code>
+                        </td>
+                        <td>
+                            <strong>{{ item.product.name }}</strong>
+                            {% if item.product.description %}
+                            <br><small class="text-muted">{{ item.product.description[:50] }}...</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ format_currency(item.purchase_price) }}</td>
+                        <td>{{ format_currency(item.selling_price) }}</td>
+                        <td>{{ item.initial_stock }}</td>
+                        <td>
+                            <span class="badge {% if item.current_stock < item.minimum_stock %}bg-danger{% elif item.current_stock < item.minimum_stock * 2 %}bg-warning{% else %}bg-success{% endif %}">
+                                {{ item.current_stock }}
+                            </span>
+                        </td>
+                        <td>{{ item.minimum_stock }}</td>
+                        <td>
+                            {% if item.current_stock <= 0 %}
+                                <span class="badge bg-danger">Habis</span>
+                            {% elif item.current_stock < item.minimum_stock %}
+                                <span class="badge bg-warning">Stok Rendah</span>
+                            {% elif item.current_stock < item.minimum_stock * 2 %}
+                                <span class="badge bg-info">Stok Cukup</span>
+                            {% else %}
+                                <span class="badge bg-success">Stok Aman</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ format_currency(item.selling_price - item.purchase_price) }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-success" onclick="updateStock({{ item.id }}, 'add', '{{ item.code }}')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="updateStock({{ item.id }}, 'subtract', '{{ item.code }}')">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <button class="btn btn-outline-info" onclick="editItem({{ item.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <a href="/api/generate_barcode/{{ item.code }}" class="btn btn-outline-secondary" target="_blank">
+                                    <i class="fas fa-barcode"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Belum ada item inventory</h5>
+            <p class="text-muted">Tambahkan item inventory pertama Anda</p>
+            <a href="{{ url_for('add_inventory_item') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>
+                Tambah Item Inventory
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal for Stock Update -->
+<div class="modal fade" id="stockModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="stockModalTitle">Update Stok</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="stockForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Jumlah</label>
+                        <input type="number" class="form-control" name="quantity" id="quantity" required min="1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Keterangan</label>
+                        <textarea class="form-control" name="notes" id="notes" rows="3" placeholder="Keterangan update stok..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Update Stok</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateStock(itemId, action, itemCode) {
+    const modal = new bootstrap.Modal(document.getElementById('stockModal'));
+    const form = document.getElementById('stockForm');
+    const title = document.getElementById('stockModalTitle');
+    
+    // Set form action
+    form.action = `/inventory/${itemId}/update_stock`;
+    
+    // Add hidden field for action
+    let actionInput = document.getElementById('actionInput');
+    if (!actionInput) {
+        actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.id = 'actionInput';
+        form.appendChild(actionInput);
+    }
+    actionInput.value = action;
+    
+    // Set modal title
+    const actionText = action === 'add' ? 'Tambah Stok' : 'Kurangi Stok';
+    title.textContent = `${actionText} - ${itemCode}`;
+    
+    // Reset form
+    form.reset();
+    actionInput.value = action;
+    
+    modal.show();
+}
+
+function editItem(itemId) {
+    // Navigate to edit page (implement as needed)
+    window.location.href = `/inventory/${itemId}/edit`;
+}
+</script>
+{% endblock %}

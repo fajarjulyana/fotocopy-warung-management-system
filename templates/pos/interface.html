@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}Kasir/POS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pos-container { height: calc(100vh - 100px); }
+    .item-grid { max-height: 400px; overflow-y: auto; }
+    .item-card { cursor: pointer; transition: all 0.2s; }
+    .item-card:hover { transform: scale(1.02); }
+    .cart-container { min-height: 300px; }
+    .total-display { font-size: 1.5rem; font-weight: bold; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Kasir/POS</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <span class="badge bg-success me-2">{{ session.username }}</span>
+        <button class="btn btn-outline-secondary" onclick="clearCart()">
+            <i class="fas fa-trash me-2"></i>
+            Clear Cart
+        </button>
+    </div>
+</div>
+
+<div class="row pos-container">
+    <!-- Product Selection -->
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h6 class="mb-0">Pilih Produk</h6>
+                    </div>
+                    <div class="col-auto">
+                        <input type="text" class="form-control form-control-sm" id="searchInput" 
+                               placeholder="Cari produk..." onkeyup="searchProducts()">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body item-grid">
+                <div class="row g-3" id="itemGrid">
+                    {% for item in items %}
+                    <div class="col-md-4 item-row" data-name="{{ item.product.name.lower() }}" data-code="{{ item.code.lower() }}">
+                        <div class="card item-card" onclick="addToCart({{ item.id }}, '{{ item.code }}', '{{ item.product.name }}', {{ item.selling_price }}, {{ item.current_stock }})">
+                            <div class="card-body text-center p-2">
+                                <h6 class="card-title mb-1">{{ item.product.name }}</h6>
+                                <p class="card-text">
+                                    <small class="text-muted">{{ item.code }}</small><br>
+                                    <strong class="text-success">{{ format_currency(item.selling_price) }}</strong><br>
+                                    <small class="text-info">Stok: {{ item.current_stock }}</small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart and Checkout -->
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <h6 class="mb-0">Keranjang Belanja</h6>
+            </div>
+            <div class="card-body cart-container">
+                <div id="cartItems" class="mb-3">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                        <p>Keranjang kosong</p>
+                    </div>
+                </div>
+
+                <div class="border-top pt-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="subtotal" class="fw-bold">Rp 0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 total-display text-primary">
+                        <span>Total:</span>
+                        <span id="total">Rp 0</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentAmount" class="form-label">Jumlah Bayar</label>
+                        <input type="number" class="form-control" id="paymentAmount" 
+                               placeholder="0" onkeyup="calculateChange()">
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Kembalian:</span>
+                            <span id="change" class="fw-bold text-success">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-success btn-lg" id="checkoutBtn" onclick="processCheckout()" disabled>
+                            <i class="fas fa-credit-card me-2"></i>
+                            Checkout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Struk Pembayaran</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="receiptContent">
+                <!-- Receipt content will be generated here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" onclick="printReceipt()">
+                    <i class="fas fa-print me-2"></i>
+                    Print
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let cart = [];
+let totalAmount = 0;
+
+function searchProducts() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const items = document.querySelectorAll('.item-row');
+
+    items.forEach(item => {
+        const name = item.dataset.name;
+        const code = item.dataset.code;
+
+        if (name.includes(query) || code.includes(query)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function addToCart(id, code, name, price, stock) {
+    const existingItem = cart.find(item => item.id === id);
+
+    if (existingItem) {
+        if (existingItem.quantity < stock) {
+            existingItem.quantity += 1;
+            existingItem.subtotal = existingItem.quantity * price;
+        } else {
+            alert('Stok tidak mencukupi!');
+            return;
+        }
+    } else {
+        cart.push({
+            id: id,
+            code: code,
+            name: name,
+            price: price,
+            quantity: 1,
+            subtotal: price,
+            stock: stock
+        });
+    }
+
+    updateCartDisplay();
+}
+
+function removeFromCart(id) {
+    cart = cart.filter(item => item.id !== id);
+    updateCartDisplay();
+}
+
+function updateQuantity(id, newQuantity) {
+    const item = cart.find(item => item.id === id);
+    if (item) {
+        if (newQuantity <= 0) {
+            removeFromCart(id);
+        } else if (newQuantity <= item.stock) {
+            item.quantity = newQuantity;
+            item.subtotal = item.quantity * item.price;
+            updateCartDisplay();
+        } else {
+            alert('Stok tidak mencukupi!');
+        }
+    }
+}
+
+function updateCartDisplay() {
+    const cartContainer = document.getElementById('cartItems');
+
+    if (cart.length === 0) {
+        cartContainer.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                <p>Keranjang kosong</p>
+            </div>
+        `;
+        totalAmount = 0;
+    } else {
+        let html = '';
+        totalAmount = 0;
+
+        cart.forEach(item => {
+            totalAmount += item.subtotal;
+            html += `
+                <div class="border-bottom pb-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${item.name}</h6>
+                            <small class="text-muted">${item.code}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${item.id})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="row align-items-center mt-2">
+                        <div class="col-6">
+                            <div class="input-group input-group-sm">
+                                <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">-</button>
+                                <input type="number" class="form-control text-center" value="${item.quantity}" 
+                                       onchange="updateQuantity(${item.id}, parseInt(this.value))" min="1" max="${item.stock}">
+                                <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">+</button>
+                            </div>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>${formatCurrency(item.subtotal)}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        cartContainer.innerHTML = html;
+    }
+
+    document.getElementById('subtotal').textContent = formatCurrency(totalAmount);
+    document.getElementById('total').textContent = formatCurrency(totalAmount);
+    document.getElementById('checkoutBtn').disabled = cart.length === 0;
+
+    calculateChange();
+}
+
+function calculateChange() {
+    const paymentAmount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+    const change = paymentAmount - totalAmount;
+    document.getElementById('change').textContent = formatCurrency(Math.max(0, change));
+
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    checkoutBtn.disabled = cart.length === 0 || paymentAmount < totalAmount;
+}
+
+function processCheckout() {
+    const paymentAmount = parseFloat(document.getElementById('paymentAmount').value);
+
+    if (paymentAmount < totalAmount) {
+        alert('Jumlah bayar kurang!');
+        return;
+    }
+
+    const transactionData = {
+        items: cart,
+        payment_amount: paymentAmount
+    };
+
+    fetch('/pos/process_sale', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(transactionData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message with download option
+            const download = confirm('Transaksi berhasil!\nTotal: ' + formatCurrency(data.total) + 
+                  '\nBayar: ' + formatCurrency(data.payment_amount) + 
+                  '\nKembali: ' + formatCurrency(data.change) +
+                  '\n\nDownload struk PDF?');
+
+            if (download) {
+                window.open('/pos/receipt/' + data.transaction_id, '_blank');
+            }
+
+            // Reset form
+            cart = [];
+            updateCartDisplay();
+            document.getElementById('paymentAmount').value = '';
+            document.getElementById('change').textContent = formatCurrency(0);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat memproses transaksi');
+    });
+}
+
+function showReceipt(data) {
+    const receiptContent = document.getElementById('receiptContent');
+    let itemsHtml = '';
+
+    data.items.forEach(item => {
+        itemsHtml += `
+            <tr>
+                <td>${item.name}</td>
+                <td class="text-center">${item.quantity}</td>
+                <td class="text-end">${formatCurrency(item.selling_price)}</td>
+                <td class="text-end">${formatCurrency(item.subtotal)}</td>
+            </tr>
+        `;
+    });
+
+    receiptContent.innerHTML = `
+        <div class="text-center mb-4">
+            <h5>STRUK PEMBAYARAN</h5>
+            <p class="mb-0">Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
+            <p class="mb-0">Waktu: ${new Date().toLocaleTimeString('id-ID')}</p>
+            <p class="mb-0">ID Transaksi: #${data.transaction_id}</p>
+        </div>
+
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Harga</th>
+                    <th class="text-end">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsHtml}
+            </tbody>
+        </table>
+
+        <div class="border-top pt-3">
+            <div class="row">
+                <div class="col-6"><strong>Total:</strong></div>
+                <div class="col-6 text-end"><strong>${formatCurrency(data.total)}</strong></div>
+            </div>
+            <div class="row">
+                <div class="col-6">Bayar:</div>
+                <div class="col-6 text-end">${formatCurrency(data.payment_amount)}</div>
+            </div>
+            <div class="row">
+                <div class="col-6">Kembalian:</div>
+                <div class="col-6 text-end">${formatCurrency(data.change)}</div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="mb-0"><small>Terima kasih atas kunjungan Anda!</small></p>
+        </div>
+    `;
+
+    const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
+    receiptModal.show();
+}
+
+function printReceipt() {
+    const printContent = document.getElementById('receiptContent').innerHTML;
+    const originalContent = document.body.innerHTML;
+
+    document.body.innerHTML = printContent;
+    window.print();
+    document.body.innerHTML = originalContent;
+    location.reload();
+}
+
+function clearCart() {
+    cart = [];
+    updateCartDisplay();
+    document.getElementById('paymentAmount').value = '';
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(amount);
+}
+
+// Initialize
+updateCartDisplay();
+</script>
+{% endblock %}
