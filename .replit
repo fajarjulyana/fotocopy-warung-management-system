@@ -1,0 +1,20 @@
+modules = ["web", "python-3.12", "nodejs-20"]
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Run Integrated App"
+
+[[workflows.workflow]]
+name = "Run Integrated App"
+author = 46757302
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python app.py"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
