@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Buat Nota Baru - Sistem Manajemen Service{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-plus me-2"></i>Buat Nota Service Baru
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Kembali
+            </a>
+        </div>
+    </div>
+</div>
+
+<form method="POST" novalidate>
+    <div class="row">
+        <!-- Customer Information -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user me-2"></i>Data Pelanggan
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="customer_name" class="form-label">
+                                <i class="fas fa-user me-1"></i>Nama Pembeli *
+                            </label>
+                            <input type="text" class="form-control" id="customer_name" 
+                                   name="customer_name" required 
+                                   placeholder="Masukkan nama lengkap pelanggan">
+                            <div class="invalid-feedback">
+                                Nama pembeli harus diisi
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="customer_phone" class="form-label">
+                                <i class="fas fa-phone me-1"></i>No. Telepon *
+                            </label>
+                            <input type="tel" class="form-control" id="customer_phone" 
+                                   name="customer_phone" required 
+                                   placeholder="Contoh: 081234567890">
+                            <div class="invalid-feedback">
+                                Nomor telepon harus diisi
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Items -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-tools me-2"></i>Item Perbaikan</span>
+                    <button type="button" class="btn btn-success btn-sm" id="add-item-btn">
+                        <i class="fas fa-plus me-1"></i>Tambah Item
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="service-items-container">
+                        <!-- Service items will be added dynamically -->
+                    </div>
+                    <input type="hidden" id="item-count" name="item_count" value="0">
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Tips:</strong> Pastikan untuk mengisi semua item perbaikan dengan detail dan harga yang akurat.
+                        Gunakan tombol "Tambah Item" untuk menambah lebih banyak item perbaikan.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Summary -->
+        <div class="col-md-4">
+            <div class="card invoice-summary sticky-top">
+                <div class="card-header">
+                    <i class="fas fa-calculator me-2"></i>Ringkasan Nota
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="discount" class="form-label">
+                            <i class="fas fa-percent me-1"></i>Diskon (%)
+                        </label>
+                        <input type="number" class="form-control" id="discount" 
+                               name="discount" min="0" max="100" step="0.1" 
+                               value="0" placeholder="0">
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Harga Asli:</span>
+                        <span id="subtotal-amount">Rp 0</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Diskon:</span>
+                        <span id="discount-amount" class="text-danger">Rp 0</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between">
+                        <strong>Total:</strong>
+                        <strong class="total-amount" id="total-amount">Rp 0</strong>
+                    </div>
+                    
+                    <div class="warranty-notice mt-3">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        GARANSI 3 BULAN
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>Buat Nota
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Batal
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Company Info Footer -->
+<div class="row mt-4 no-print">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title text-primary">FJ SERVICE KOMPUTER LAPTOP HANDPHONE</h5>
+                <p class="card-text">
+                    KP Jl. Pasir Wangi No.RT 01, RW 11, Kec. Lembang, Kabupaten Bandung Barat, Jawa Barat 40391<br>
+                    <i class="fas fa-phone me-1"></i> 
+                    <i class="fab fa-whatsapp me-1"></i>
+                    0818-0441-1937
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Additional form handling for create invoice
+document.addEventListener('DOMContentLoaded', function() {
+    // Focus on customer name field
+    document.getElementById('customer_name').focus();
+    
+    // Format phone number
+    const phoneInput = document.getElementById('customer_phone');
+    phoneInput.addEventListener('input', function() {
+        let value = this.value.replace(/\D/g, ''); // Remove non-digits
+        if (value.length > 0 && !value.startsWith('0')) {
+            value = '0' + value; // Add leading 0 if not present
+        }
+        this.value = value;
+    });
+    
+    // Validate phone number
+    phoneInput.addEventListener('blur', function() {
+        const value = this.value;
+        if (value && (value.length < 10 || value.length > 15)) {
+            this.setCustomValidity('Nomor telepon harus antara 10-15 digit');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,2 +1,4 @@
-# fotocopy-warung-management-system
-Aplikasi Gabungan Semuanya dan Teritegrasi 1 database saja
+==================================================
+		Fajar Julyana
+==================================================
+gabungkan semua aplikasi menjadi Aplikasi Fotocopy & Warung  Management System fajarmandiri.store dengan database terintegrasi 1 saja namun terelasi tanpa duplikasi data

@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if cost_type == 'product' %}
+        Tambah Produk Baru
+    {% else %}
+        Tambah Biaya {{ cost_type|title }}
+    {% endif %} - Akumulasi Harga Produk
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="mb-4">
+            {% if product %}
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Beranda</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('product_details', product_id=product.id) }}">{{ product.name }}</a></li>
+                        <li class="breadcrumb-item active">Tambah Biaya {% if cost_type == 'maintenance' %}Perawatan{% else %}{{ cost_type|title }}{% endif %}</li>
+                    </ol>
+                </nav>
+            {% endif %}
+            
+            <h1 class="h2">
+                {% if cost_type == 'product' %}
+                    <i class="fas fa-plus-circle me-2"></i>Tambah Produk Baru
+                {% elif cost_type == 'material' %}
+                    <i class="fas fa-boxes me-2"></i>Tambah Biaya Bahan
+                {% elif cost_type == 'service' %}
+                    <i class="fas fa-user-tie me-2"></i>Tambah Biaya Jasa
+                {% elif cost_type == 'maintenance' %}
+                    <i class="fas fa-tools me-2"></i>Tambah Biaya Perawatan
+                {% endif %}
+            </h1>
+            {% if product %}
+                <p class="text-muted">Untuk produk: <strong>{{ product.name }}</strong></p>
+            {% endif %}
+        </div>
+
+        <!-- Form -->
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {% if cost_type == 'product' %}
+                        <!-- Product Form -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nama Produk *</label>
+                            <input type="text" class="form-control" id="name" name="name" required 
+                                   placeholder="Contoh: Kertas A4, Kemasan Produk, dll">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Deskripsi singkat tentang produk ini..."></textarea>
+                        </div>
+                    {% else %}
+                        <!-- Cost Form -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">
+                                {% if cost_type == 'material' %}
+                                    Nama Bahan *
+                                {% elif cost_type == 'service' %}
+                                    Nama Jasa *
+                                {% elif cost_type == 'maintenance' %}
+                                    Nama Peralatan *
+                                {% endif %}
+                            </label>
+                            <input type="text" class="form-control" id="name" name="name" required 
+                                   placeholder="{% if cost_type == 'material' %}Contoh: Kertas, Tinta, Lem{% elif cost_type == 'service' %}Contoh: Desain, Cetak, Packaging{% elif cost_type == 'maintenance' %}Contoh: Printer, Mesin Potong{% endif %}">
+                        </div>
+
+                        {% if cost_type == 'service' %}
+                            <div class="mb-3">
+                                <label for="service_type" class="form-label">Jenis Jasa</label>
+                                <select class="form-select" id="service_type" name="service_type">
+                                    <option value="labor">Tenaga Kerja</option>
+                                    <option value="design">Desain</option>
+                                    <option value="consulting">Konsultasi</option>
+                                    <option value="printing">Percetakan</option>
+                                    <option value="packaging">Packaging</option>
+                                    <option value="delivery">Pengiriman</option>
+                                    <option value="other">Lainnya</option>
+                                </select>
+                            </div>
+                        {% elif cost_type == 'maintenance' %}
+                            <div class="mb-3">
+                                <label for="maintenance_type" class="form-label">Jenis Perawatan</label>
+                                <select class="form-select" id="maintenance_type" name="maintenance_type">
+                                    <option value="routine">Rutin</option>
+                                    <option value="repair">Perbaikan</option>
+                                    <option value="replacement">Penggantian</option>
+                                    <option value="calibration">Kalibrasi</option>
+                                    <option value="cleaning">Pembersihan</option>
+                                    <option value="other">Lainnya</option>
+                                </select>
+                            </div>
+                        {% endif %}
+
+                        <!-- Mode Harga -->
+                        <div class="mb-3">
+                            <label class="form-label">Mode Perhitungan Harga</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="price_mode" id="manual_mode" value="manual" checked onchange="togglePriceMode()">
+                                        <label class="form-check-label" for="manual_mode">
+                                            <strong>💡 Manual</strong><br>
+                                            <small class="text-muted">Input harga per satuan langsung</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="price_mode" id="package_mode" value="package" onchange="togglePriceMode()">
+                                        <label class="form-check-label" for="package_mode">
+                                            <strong>📦 Konversi Kemasan</strong><br>
+                                            <small class="text-muted">Hitung dari harga kemasan besar</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="quantity" class="form-label">Jumlah *</label>
+                                    <input type="number" step="0.01" class="form-control" id="quantity" name="quantity" 
+                                           required value="1" min="0.01">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="unit" class="form-label">Satuan *</label>
+                                    <select class="form-select" id="unit" name="unit">
+                                        {% if cost_type == 'material' %}
+                                            <option value="lembar">Lembar</option>
+                                            <option value="pcs">Pcs</option>
+                                            <option value="kg">Kg</option>
+                                            <option value="liter">Liter</option>
+                                            <option value="meter">Meter</option>
+                                            <option value="roll">Roll</option>
+                                            <option value="box">Box</option>
+                                            <option value="cartridge">Cartridge</option>
+                                        {% elif cost_type == 'service' %}
+                                            <option value="hour">Jam</option>
+                                            <option value="day">Hari</option>
+                                            <option value="project">Proyek</option>
+                                            <option value="pcs">Pcs</option>
+                                            <option value="page">Halaman</option>
+                                        {% elif cost_type == 'maintenance' %}
+                                            <option value="service">Layanan</option>
+                                            <option value="hour">Jam</option>
+                                            <option value="day">Hari</option>
+                                            <option value="replacement">Penggantian</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3" id="manual_price_section">
+                                    <label for="unit_cost" class="form-label">Harga per Satuan (Rp) *</label>
+                                    <input type="number" step="0.01" class="form-control" id="unit_cost" name="unit_cost" 
+                                           min="0" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Package Converter Section -->
+                        <div id="package_converter_section" style="display: none;">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title text-info">
+                                        <i class="fas fa-box-open me-2"></i>Konverter Harga Kemasan
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="package_name" class="form-label">Nama Kemasan</label>
+                                                <select class="form-select" id="package_name" onchange="updatePackagePreset()">
+                                                    <option value="">Pilih atau ketik manual...</option>
+                                                    <option value="rim" data-unit="lembar" data-qty="500">1 RIM (500 lembar)</option>
+                                                    <option value="set_cmyk" data-unit="cartridge" data-qty="4">1 Set CMYK (4 cartridge)</option>
+                                                    <option value="box_a4" data-unit="lembar" data-qty="2500">1 Box A4 (2500 lembar)</option>
+                                                    <option value="dus_tinta" data-unit="botol" data-qty="12">1 Dus Tinta (12 botol)</option>
+                                                    <option value="karton" data-unit="lembar" data-qty="100">1 Karton (100 lembar)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="package_price" class="form-label">Harga per Kemasan (Rp)</label>
+                                                <input type="number" step="0.01" class="form-control" id="package_price" 
+                                                       min="0" placeholder="0.00" onchange="calculateUnitPrice()">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="package_qty" class="form-label">Isi per Kemasan</label>
+                                                <input type="number" step="1" class="form-control" id="package_qty" 
+                                                       min="1" placeholder="1" onchange="calculateUnitPrice()">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info mb-0 border-info">
+                                        <strong>💡 Hasil:</strong> 
+                                        Harga per <span id="result_unit">satuan</span>: 
+                                        <strong>Rp <span id="calculated_unit_price">0</span></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Catatan</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2" 
+                                      placeholder="Catatan tambahan (opsional)..."></textarea>
+                        </div>
+
+                        <!-- Cost Preview -->
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-calculator me-2"></i>Perhitungan Otomatis
+                            </h6>
+                            <p class="mb-0">
+                                Total Biaya = <span id="quantity-display">1</span> × 
+                                Rp <span id="unit-cost-display">0.00</span> = 
+                                <strong>Rp <span id="total-cost-display">0.00</span></strong>
+                            </p>
+                        </div>
+                    {% endif %}
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex justify-content-between">
+                        {% if product %}
+                            <a href="{{ url_for('product_details', product_id=product.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Kembali
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Kembali
+                            </a>
+                        {% endif %}
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>
+                            {% if cost_type == 'product' %}
+                                Buat Produk
+                            {% else %}
+                                Tambah Biaya
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Toggle between manual and package mode
+function togglePriceMode() {
+    const manualMode = document.getElementById('manual_mode').checked;
+    const packageSection = document.getElementById('package_converter_section');
+    const manualSection = document.getElementById('manual_price_section');
+    const unitCostInput = document.getElementById('unit_cost');
+    
+    if (manualMode) {
+        packageSection.style.display = 'none';
+        manualSection.style.display = 'block';
+        unitCostInput.required = true;
+    } else {
+        packageSection.style.display = 'block';
+        manualSection.style.display = 'none';
+        unitCostInput.required = false;
+        unitCostInput.value = '';
+    }
+    updateTotalCost();
+}
+
+// Update package preset when selection changes
+function updatePackagePreset() {
+    const select = document.getElementById('package_name');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        const unit = selectedOption.dataset.unit;
+        const qty = selectedOption.dataset.qty;
+        
+        if (unit) {
+            document.getElementById('unit').value = unit;
+        }
+        if (qty) {
+            document.getElementById('package_qty').value = qty;
+        }
+        
+        calculateUnitPrice();
+    }
+}
+
+// Calculate unit price from package price
+function calculateUnitPrice() {
+    const packagePrice = parseFloat(document.getElementById('package_price')?.value || 0);
+    const packageQty = parseFloat(document.getElementById('package_qty')?.value || 1);
+    const unitSelect = document.getElementById('unit');
+    
+    if (packagePrice > 0 && packageQty > 0) {
+        const unitPrice = packagePrice / packageQty;
+        document.getElementById('unit_cost').value = unitPrice.toFixed(2);
+        document.getElementById('calculated_unit_price').textContent = unitPrice.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('result_unit').textContent = unitSelect.options[unitSelect.selectedIndex].text.toLowerCase();
+    } else {
+        document.getElementById('calculated_unit_price').textContent = '0';
+    }
+    
+    updateTotalCost();
+}
+
+// Auto-calculate total cost
+function updateTotalCost() {
+    const quantity = parseFloat(document.getElementById('quantity')?.value || 0);
+    const unitCost = parseFloat(document.getElementById('unit_cost')?.value || 0);
+    const totalCost = quantity * unitCost;
+    
+    document.getElementById('quantity-display').textContent = quantity.toLocaleString();
+    document.getElementById('unit-cost-display').textContent = unitCost.toLocaleString(undefined, {minimumFractionDigits: 2});
+    document.getElementById('total-cost-display').textContent = totalCost.toLocaleString(undefined, {minimumFractionDigits: 2});
+}
+
+// Add event listeners if elements exist
+if (document.getElementById('quantity')) {
+    document.getElementById('quantity').addEventListener('input', updateTotalCost);
+    document.getElementById('unit_cost').addEventListener('input', updateTotalCost);
+    
+    // Event listeners for package converter
+    if (document.getElementById('package_price')) {
+        document.getElementById('package_price').addEventListener('input', calculateUnitPrice);
+    }
+    if (document.getElementById('package_qty')) {
+        document.getElementById('package_qty').addEventListener('input', calculateUnitPrice);
+    }
+    if (document.getElementById('unit')) {
+        document.getElementById('unit').addEventListener('change', calculateUnitPrice);
+    }
+    
+    // Initial calculation
+    updateTotalCost();
+}
+</script>
+{% endblock %}

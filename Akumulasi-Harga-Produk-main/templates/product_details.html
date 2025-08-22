@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Detail Produk{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Beranda</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('products') }}">Produk</a></li>
+                <li class="breadcrumb-item active">{{ product.name }}</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h1 class="h2 mb-0">{{ product.name }}</h1>
+                {% if product.description %}
+                    <p class="text-muted mb-0">{{ product.description }}</p>
+                {% endif %}
+                <small class="text-muted">Dibuat: {{ product.created_at.strftime('%d %B %Y, %H:%M') }}</small>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-plus me-2"></i>Tambah Biaya Baru
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('add_cost', product_id=product.id, cost_type='material') }}">
+                            <i class="fas fa-boxes me-2"></i>Biaya Bahan
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('add_cost', product_id=product.id, cost_type='service') }}">
+                            <i class="fas fa-user-tie me-2"></i>Biaya Jasa
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('add_cost', product_id=product.id, cost_type='maintenance') }}">
+                            <i class="fas fa-tools me-2"></i>Biaya Perawatan
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Cost Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary bg-opacity-10 border-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-boxes fa-2x text-primary mb-2"></i>
+                        <h5 class="card-title">Biaya Bahan</h5>
+                        <h4 class="text-primary">Rp {{ "{:,.2f}".format(product.total_material_cost) }}</h4>
+                        <small class="text-muted">{{ product.material_costs|length }} item</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success bg-opacity-10 border-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-user-tie fa-2x text-success mb-2"></i>
+                        <h5 class="card-title">Biaya Jasa</h5>
+                        <h4 class="text-success">Rp {{ "{:,.2f}".format(product.total_service_cost) }}</h4>
+                        <small class="text-muted">{{ product.service_costs|length }} item</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning bg-opacity-10 border-warning">
+                    <div class="card-body text-center">
+                        <i class="fas fa-tools fa-2x text-warning mb-2"></i>
+                        <h5 class="card-title">Biaya Perawatan</h5>
+                        <h4 class="text-warning">Rp {{ "{:,.2f}".format(product.total_maintenance_cost) }}</h4>
+                        <small class="text-muted">{{ product.maintenance_costs|length }} item</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info bg-opacity-10 border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calculator fa-2x text-info mb-2"></i>
+                        <h5 class="card-title">Total Biaya</h5>
+                        <h4 class="text-info">Rp {{ "{:,.2f}".format(product.total_cost) }}</h4>
+                        <small class="text-muted">Semua kategori</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unit Cost Calculator -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calculator me-2"></i>Kalkulator Biaya Per Unit
+                </h5>
+            </div>
+            <div class="card-body">
+                <form class="row g-3" onsubmit="calculateUnitCost(event)">
+                    <div class="col-md-6">
+                        <label for="units" class="form-label">Jumlah Satuan (contoh: jumlah lembar kertas)</label>
+                        <input type="number" class="form-control" id="units" min="1" value="1" required>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-calculator me-2"></i>Hitung Biaya Per Satuan
+                        </button>
+                    </div>
+                </form>
+                <div id="unit-cost-result" class="mt-3" style="display: none;">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Hasil Perhitungan:</h6>
+                        <p class="mb-0">
+                            Biaya per satuan: <strong>Rp <span id="cost-per-unit">0</span></strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Cost Breakdown -->
+        <div class="row">
+            <!-- Material Costs -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-boxes text-primary me-2"></i>Biaya Bahan
+                        </h5>
+                        <a href="{{ url_for('add_cost', product_id=product.id, cost_type='material') }}" 
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if product.material_costs %}
+                            {% for material in product.material_costs %}
+                                <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ material.material_name }}</h6>
+                                        <small class="text-muted">
+                                            {{ material.quantity }} {{ material.unit }} × 
+                                            Rp {{ "{:,.2f}".format(material.unit_cost) }}
+                                        </small>
+                                        {% if material.notes %}
+                                            <br><small class="text-muted">{{ material.notes }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-end">
+                                        <strong>Rp {{ "{:,.2f}".format(material.total_cost) }}</strong>
+                                        <form method="POST" action="{{ url_for('delete_cost', cost_type='material', cost_id=material.id) }}" 
+                                              class="d-inline" onsubmit="return confirm('Hapus biaya bahan ini?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-3">
+                                <i class="fas fa-inbox text-muted mb-2"></i>
+                                <p class="text-muted mb-0">Belum ada biaya bahan</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Costs -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-tie text-success me-2"></i>Biaya Jasa
+                        </h5>
+                        <a href="{{ url_for('add_cost', product_id=product.id, cost_type='service') }}" 
+                           class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if product.service_costs %}
+                            {% for service in product.service_costs %}
+                                <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ service.service_name }}</h6>
+                                        <small class="text-muted">
+                                            {{ service.service_type|title }} - 
+                                            {{ service.quantity }} {{ service.unit }} × 
+                                            Rp {{ "{:,.2f}".format(service.unit_cost) }}
+                                        </small>
+                                        {% if service.notes %}
+                                            <br><small class="text-muted">{{ service.notes }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-end">
+                                        <strong>Rp {{ "{:,.2f}".format(service.total_cost) }}</strong>
+                                        <form method="POST" action="{{ url_for('delete_cost', cost_type='service', cost_id=service.id) }}" 
+                                              class="d-inline" onsubmit="return confirm('Hapus biaya jasa ini?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-3">
+                                <i class="fas fa-inbox text-muted mb-2"></i>
+                                <p class="text-muted mb-0">Belum ada biaya jasa</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Costs -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tools text-warning me-2"></i>Biaya Perawatan
+                        </h5>
+                        <a href="{{ url_for('add_cost', product_id=product.id, cost_type='maintenance') }}" 
+                           class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if product.maintenance_costs %}
+                            {% for maintenance in product.maintenance_costs %}
+                                <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ maintenance.equipment_name }}</h6>
+                                        <small class="text-muted">
+                                            {{ maintenance.maintenance_type|title }} - 
+                                            {{ maintenance.quantity }} {{ maintenance.unit }} × 
+                                            Rp {{ "{:,.2f}".format(maintenance.unit_cost) }}
+                                        </small>
+                                        {% if maintenance.notes %}
+                                            <br><small class="text-muted">{{ maintenance.notes }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-end">
+                                        <strong>Rp {{ "{:,.2f}".format(maintenance.total_cost) }}</strong>
+                                        <form method="POST" action="{{ url_for('delete_cost', cost_type='maintenance', cost_id=maintenance.id) }}" 
+                                              class="d-inline" onsubmit="return confirm('Hapus biaya maintenance ini?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-3">
+                                <i class="fas fa-inbox text-muted mb-2"></i>
+                                <p class="text-muted mb-0">Belum ada biaya perawatan</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateUnitCost(event) {
+    event.preventDefault();
+    
+    const units = parseInt(document.getElementById('units').value);
+    const totalCost = {{ product.total_cost }};
+    const costPerUnit = totalCost / units;
+    
+    document.getElementById('cost-per-unit').textContent = costPerUnit.toLocaleString(undefined, {minimumFractionDigits: 2});
+    document.getElementById('unit-cost-result').style.display = 'block';
+}
+</script>
+{% endblock %}
