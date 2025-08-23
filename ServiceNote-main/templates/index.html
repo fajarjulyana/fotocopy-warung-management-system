@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistem Manajemen Service{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard Service Center
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h3>{{ total_invoices }}</h3>
+            <p><i class="fas fa-receipt me-2"></i>Total Nota Service</p>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h3>{{ "Rp{:,.0f}".format(total_revenue).replace(",", ".") }}</h3>
+            <p><i class="fas fa-money-bill-wave me-2"></i>Total Pendapatan</p>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-bolt me-2"></i>Aksi Cepat
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('create_invoice') }}" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-plus me-2"></i>Buat Nota Baru
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('invoice_list') }}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-list me-2"></i>Lihat Semua Nota
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <button class="btn btn-info btn-lg w-100" onclick="window.location.reload()">
+                            <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Invoices -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-clock me-2"></i>Nota Service Terbaru
+            </div>
+            <div class="card-body">
+                {% if recent_invoices %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Pelanggan</th>
+                                    <th>No. Telepon</th>
+                                    <th>Total</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in recent_invoices %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">#{{ invoice.id }}</span>
+                                    </td>
+                                    <td>{{ invoice.date }}</td>
+                                    <td>
+                                        <strong>{{ invoice.customer_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-phone me-1 text-muted"></i>
+                                        {{ invoice.customer_phone }}
+                                    </td>
+                                    <td>
+                                        <span class="total-amount">
+                                            Rp{{ "{:,.0f}".format(invoice.total).replace(",", ".") }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" 
+                                               class="btn btn-outline-primary" title="Lihat Detail">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('download_pdf', invoice_id=invoice.id) }}" 
+                                               class="btn btn-outline-success" title="Download PDF">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('invoice_list') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-right me-2"></i>Lihat Semua Nota
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Belum Ada Nota Service</h5>
+                        <p class="text-muted mb-4">Mulai membuat nota service untuk pelanggan Anda</p>
+                        <a href="{{ url_for('create_invoice') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus me-2"></i>Buat Nota Pertama
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service Information -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-2"></i>Informasi Service Center
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-tools me-2 text-primary"></i>Layanan Kami</h6>
+                        <ul class="list-unstyled ms-3">
+                            <li><i class="fas fa-check text-success me-2"></i>Service Laptop & Komputer</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Service Handphone & Tablet</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Instalasi Software</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Recovery Data</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Upgrade Hardware</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-shield-alt me-2 text-success"></i>Keunggulan Kami</h6>
+                        <ul class="list-unstyled ms-3">
+                            <li><i class="fas fa-star text-warning me-2"></i>Garansi 3 Bulan</li>
+                            <li><i class="fas fa-star text-warning me-2"></i>Teknisi Berpengalaman</li>
+                            <li><i class="fas fa-star text-warning me-2"></i>Harga Terjangkau</li>
+                            <li><i class="fas fa-star text-warning me-2"></i>Pelayanan Cepat</li>
+                            <li><i class="fas fa-star text-warning me-2"></i>Sparepart Original</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="warranty-notice mt-3">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    GARANSI 3 BULAN UNTUK SEMUA JENIS PERBAIKAN
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

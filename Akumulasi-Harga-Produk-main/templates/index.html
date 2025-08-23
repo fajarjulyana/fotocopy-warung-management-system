@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Company Header -->
+        <div class="card mb-4 border-primary">
+            <div class="card-body text-center py-4">
+                <h1 class="h2 mb-3 text-primary">
+                    <i class="fas fa-calculator me-2"></i>Akumulasi Harga Produk
+                </h1>
+                <h5 class="text-info mb-3">by fajarmandiri.store</h5>
+                <div class="row justify-content-center">
+                    <div class="col-md-10">
+                        <p class="mb-2">
+                            <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                            <strong>Alamat:</strong> Jl. Pasir Wangi, RT.01/RW.11, Gudangkahuripan, Kec. Lembang, Kabupaten Bandung Barat, Jawa Barat 40391
+                        </p>
+                        <p class="mb-0">
+                            <i class="fas fa-phone text-success me-2"></i>
+                            <strong>Telepon:</strong> <a href="tel:081804411937" class="text-decoration-none text-success">0818-0441-1937</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h2 mb-0">
+                    <i class="fas fa-calculator text-primary me-2"></i>
+                    Dashboard Akumulasi Harga
+                </h1>
+                <p class="text-muted mb-0">Kelola biaya bahan, jasa, dan perawatan alat produk</p>
+            </div>
+            <a href="{{ url_for('new_product') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Buat Produk Baru
+            </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary bg-opacity-10 border-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-box-open fa-2x text-primary mb-2"></i>
+                        <h4 class="card-title">{{ products|length }}</h4>
+                        <p class="card-text">Jumlah Produk</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success bg-opacity-10 border-success">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                        <h4 class="card-title">
+                            Rp {{ "%.2f"|format(products|sum(attribute='total_cost')) }}
+                        </h4>
+                        <p class="card-text">Jumlah Semua Biaya</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info bg-opacity-10 border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-cogs fa-2x text-info mb-2"></i>
+                        <h4 class="card-title">
+                            {% if products %}
+                                Rp {{ "%.2f"|format(products|sum(attribute='total_cost') / products|length) }}
+                            {% else %}
+                                Rp 0.00
+                            {% endif %}
+                        </h4>
+                        <p class="card-text">Rata-rata Biaya per Produk</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Alert -->
+        <div id="stock-alerts" class="mb-4"></div>
+
+        <!-- Products Overview -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>Daftar Produk Terbaru
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if products %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nama Produk</th>
+                                    <th>Biaya Bahan</th>
+                                    <th>Biaya Jasa</th>
+                                    <th>Biaya Perawatan</th>
+                                    <th>Total Biaya</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products[:10] %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ product.name }}</strong>
+                                        {% if product.description %}
+                                            <br><small class="text-muted">{{ product.description }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">
+                                            Rp {{ "{:,.2f}".format(product.total_material_cost) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            Rp {{ "{:,.2f}".format(product.total_service_cost) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">
+                                            Rp {{ "{:,.2f}".format(product.total_maintenance_cost) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>Rp {{ "{:,.2f}".format(product.total_cost) }}</strong>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('product_details', product_id=product.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>Lihat Detail
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if products|length > 10 %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('products') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-list me-2"></i>Lihat Semua Produk
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">Belum Ada Produk</h4>
+                        <p class="text-muted">Mulai dengan menambahkan produk pertama Anda</p>
+                        <a href="{{ url_for('new_product') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Buat Produk Pertama
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- How to Use Guide -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-question-circle me-2"></i>Cara Menggunakan
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
+                                    <h6>1. Buat Produk</h6>
+                                    <p class="small text-muted">Buat produk baru dan berikan nama serta deskripsi</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="fas fa-coins fa-2x text-success mb-2"></i>
+                                    <h6>2. Masukkan Biaya</h6>
+                                    <p class="small text-muted">Tambahkan biaya bahan, jasa, dan perawatan alat</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <i class="fas fa-calculator fa-2x text-info mb-2"></i>
+                                    <h6>3. Hitung Total Biaya</h6>
+                                    <p class="small text-muted">Lihat akumulasi total dan biaya per satuan</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Check for low stock items and show alerts
+function checkLowStock() {
+    fetch('/api/inventory/low-stock')
+        .then(response => response.json())
+        .then(data => {
+            const alertContainer = document.getElementById('stock-alerts');
+            
+            if (data.length > 0) {
+                let alertHTML = `
+                    <div class="alert alert-warning alert-dismissible fade show">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>⚠️ Peringatan Stok Rendah
+                        </h6>
+                        <p class="mb-3">Beberapa item inventory memiliki stok rendah:</p>
+                        <div class="row">
+                `;
+                
+                data.forEach(item => {
+                    alertHTML += `
+                        <div class="col-md-6 mb-2">
+                            <strong>${item.item_name}</strong>: 
+                            ${item.current_stock} ${item.unit} 
+                            <small class="text-muted">(Min: ${item.minimum_stock})</small>
+                        </div>
+                    `;
+                });
+                
+                alertHTML += `
+                        </div>
+                        <hr>
+                        <div class="mb-0">
+                            <a href="/inventory" class="btn btn-warning btn-sm">
+                                <i class="fas fa-boxes me-1"></i>Kelola Inventory
+                            </a>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    </div>
+                `;
+                
+                alertContainer.innerHTML = alertHTML;
+            }
+        })
+        .catch(error => {
+            console.log('Error checking inventory (inventory feature may not be available):', error);
+        });
+}
+
+// Check low stock on page load
+document.addEventListener('DOMContentLoaded', checkLowStock);
+
+// Check every 5 minutes
+setInterval(checkLowStock, 300000);
+</script>
+{% endblock %}

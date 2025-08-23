@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Harga Produk - fajarmandiri.store</title>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 12pt; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .table { width: 100%; border-collapse: collapse; }
+            .table th, .table td { border: 1px solid #000; padding: 8px; text-align: left; }
+            .table th { background-color: #f5f5f5; font-weight: bold; }
+            .total-row { font-weight: bold; background-color: #e9ecef; }
+        }
+        @media screen {
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            .table th { background-color: #f8f9fa; font-weight: bold; }
+            .total-row { font-weight: bold; background-color: #e9ecef; }
+            .btn { background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; margin: 5px; }
+            .btn:hover { background-color: #0056b3; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" class="btn">🖨️ Cetak Daftar Harga</button>
+        <a href="{{ url_for('index') }}" class="btn">🏠 Kembali ke Beranda</a>
+    </div>
+
+    <div class="header">
+        <h1>📋 DAFTAR HARGA PRODUK</h1>
+        <h2>fajarmandiri.store</h2>
+        <p><strong>Tanggal Cetak:</strong> {{ moment().format('DD MMMM YYYY, HH:mm') if moment else '' }}</p>
+        <hr>
+    </div>
+
+    {% if products %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No</th>
+                    <th style="width: 25%;">Nama Produk</th>
+                    <th style="width: 30%;">Deskripsi</th>
+                    <th style="width: 15%;">Biaya Bahan</th>
+                    <th style="width: 15%;">Biaya Jasa</th>
+                    <th style="width: 15%;">Biaya Perawatan</th>
+                    <th style="width: 15%;">Total Harga</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set total_all = 0 %}
+                {% for product in products %}
+                    {% set total_all = total_all + product.total_cost %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ product.name }}</strong></td>
+                        <td>{{ product.description or '-' }}</td>
+                        <td style="text-align: right;">Rp {{ "{:,.0f}".format(product.total_material_cost) }}</td>
+                        <td style="text-align: right;">Rp {{ "{:,.0f}".format(product.total_service_cost) }}</td>
+                        <td style="text-align: right;">Rp {{ "{:,.0f}".format(product.total_maintenance_cost) }}</td>
+                        <td style="text-align: right;"><strong>Rp {{ "{:,.0f}".format(product.total_cost) }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="6" style="text-align: right;"><strong>TOTAL KESELURUHAN:</strong></td>
+                    <td style="text-align: right;"><strong>Rp {{ "{:,.0f}".format(total_all) }}</strong></td>
+                </tr>
+                <tr>
+                    <td colspan="7" style="text-align: center; font-style: italic; border-top: 2px solid #000;">
+                        Total {{ products|length }} produk terdaftar | Rata-rata harga: Rp {{ "{:,.0f}".format(total_all / products|length) if products|length > 0 else 0 }}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div style="margin-top: 50px; text-align: right;">
+            <p>Dicetak pada: <strong>{{ moment().format('DD MMMM YYYY') if moment else 'Hari ini' }}</strong></p>
+            <p>Sistem Akumulasi Harga Produk</p>
+            <p><strong>fajarmandiri.store</strong></p>
+        </div>
+    {% else %}
+        <div style="text-align: center; margin-top: 50px;">
+            <h3>📦 Belum Ada Produk Terdaftar</h3>
+            <p>Silakan tambahkan produk terlebih dahulu untuk mencetak daftar harga.</p>
+        </div>
+    {% endif %}
+
+    <script>
+        // Auto print jika ada parameter print
+        if (window.location.search.includes('autoprint=true')) {
+            window.onload = function() {
+                window.print();
+            }
+        }
+    </script>
+</body>
+</html>

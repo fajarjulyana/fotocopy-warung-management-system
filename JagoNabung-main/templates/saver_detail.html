@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}{{ saver.name }} - Detail Penabung - Fajar Mandiri Store Tabungan{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Saver Info Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>Informasi Penabung
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px;">
+                        <i class="fas fa-user fa-2x text-white"></i>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Nama:</label>
+                    <div class="fw-bold">{{ saver.name }}</div>
+                </div>
+                
+                {% if saver.phone %}
+                <div class="mb-3">
+                    <label class="form-label text-muted">Telepon:</label>
+                    <div>{{ saver.phone }}</div>
+                </div>
+                {% endif %}
+                
+                {% if saver.address %}
+                <div class="mb-3">
+                    <label class="form-label text-muted">Alamat:</label>
+                    <div>{{ saver.address }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Terdaftar:</label>
+                    <div>{{ format_date_indonesian(saver.created_at.date()) }}</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Saldo Saat Ini:</label>
+                    <div class="fs-4 fw-bold {% if saver.get_balance() > 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ format_currency(saver.get_balance()) }}
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('deposit') }}?saver_name={{ saver.name }}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>Setor Lagi
+                    </a>
+                    {% if saver.get_balance() > 0 %}
+                    <a href="{{ url_for('withdraw') }}?saver_name={{ saver.name }}" class="btn btn-warning">
+                        <i class="fas fa-minus me-1"></i>Tarik Tabungan
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('print_statement', saver_id=saver.id) }}" class="btn btn-info" target="_blank">
+                        <i class="fas fa-print me-1"></i>Cetak Rekening Koran
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transactions History -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Riwayat Transaksi
+                </h5>
+                <span class="badge bg-secondary">{{ transactions|length }} Transaksi</span>
+            </div>
+            <div class="card-body p-0">
+                {% if transactions %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Jenis</th>
+                                <th>Keterangan</th>
+                                <th class="text-end">Jumlah</th>
+                                <th class="text-end">Saldo</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>
+                                    <div>{{ format_date_indonesian(transaction.date) }}</div>
+                                    <small class="text-muted">{{ transaction.created_at.strftime('%H:%M') }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge {% if transaction.type == 'deposit' %}bg-success{% else %}bg-warning{% endif %}">
+                                        {% if transaction.type == 'deposit' %}
+                                            <i class="fas fa-plus me-1"></i>Setoran
+                                        {% else %}
+                                            <i class="fas fa-minus me-1"></i>Penarikan
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div>{{ transaction.description or '-' }}</div>
+                                </td>
+                                <td class="text-end">
+                                    <strong class="{% if transaction.type == 'deposit' %}text-success{% else %}text-warning{% endif %}">
+                                        {{ format_currency(transaction.amount) }}
+                                    </strong>
+                                </td>
+                                <td class="text-end">
+                                    <strong>{{ format_currency(transaction.balance_after) }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('print_receipt', transaction_id=transaction.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                        <i class="fas fa-receipt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Belum ada transaksi untuk {{ saver.name }}</p>
+                    <a href="{{ url_for('deposit') }}?saver_name={{ saver.name }}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>Buat Transaksi Pertama
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Kembali ke Beranda
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,383 @@
+/* Custom styles for POS application */
+
+/* Improve overall text contrast */
+body {
+    color: #ffffff !important;
+}
+
+.card {
+    background-color: #2d3748 !important;
+    border: 1px solid #4a5568 !important;
+    color: #ffffff !important;
+}
+
+.card-header {
+    background-color: #1a202c !important;
+    border-bottom: 1px solid #4a5568 !important;
+    color: #ffffff !important;
+}
+
+.card-title, .card-text {
+    color: #ffffff !important;
+}
+
+.text-muted {
+    color: #a0aec0 !important;
+}
+
+/* Quick item input styling */
+#quickItemInput {
+    font-weight: bold;
+    text-transform: uppercase;
+    background-color: #1a202c;
+    border: 2px solid #007bff;
+    color: #ffffff !important;
+}
+
+#quickItemInput:focus {
+    background-color: #2d3748;
+    border-color: #0056b3;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    color: #ffffff !important;
+}
+
+#quickItemInput::placeholder {
+    color: #a0aec0 !important;
+}
+
+/* Search input styling */
+#searchInput {
+    background-color: #1a202c;
+    border: 1px solid #4a5568;
+    color: #ffffff !important;
+}
+
+#searchInput:focus {
+    background-color: #2d3748;
+    border-color: #007bff;
+    color: #ffffff !important;
+}
+
+#searchInput::placeholder {
+    color: #a0aec0 !important;
+}
+
+/* Input group styling */
+.input-group-text {
+    background-color: #1a202c !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+/* Form control styling */
+.form-control {
+    background-color: #1a202c !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+}
+
+.form-control:focus {
+    background-color: #2d3748 !important;
+    border-color: #007bff !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-control::placeholder {
+    color: #a0aec0 !important;
+}
+
+/* Payment amount input */
+#paymentAmount {
+    background-color: #1a202c !important;
+    border-color: #4a5568 !important;
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+#paymentAmount:focus {
+    background-color: #2d3748 !important;
+    border-color: #28a745 !important;
+    color: #ffffff !important;
+}
+
+.item-card {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 2px solid #4a5568 !important;
+    background-color: #2d3748 !important;
+}
+
+.item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    border-color: #007bff !important;
+    background-color: #1a202c !important;
+}
+
+.cart-item {
+    border-left: 4px solid #007bff;
+    background-color: #1a202c !important;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 0 4px 4px 0;
+    color: #ffffff !important;
+}
+
+/* Cart item text styling */
+.cart-item * {
+    color: #ffffff !important;
+}
+
+.cart-item small {
+    color: #a0aec0 !important;
+}
+
+.cart-item-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.cart-item-name {
+    font-weight: 600;
+    margin-bottom: 0;
+    color: #ffffff !important;
+}
+
+.cart-item-code {
+    font-size: 0.8em;
+    color: #a0aec0 !important;
+}
+
+.cart-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.quantity-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid #4a5568;
+    background: #2d3748;
+    color: #ffffff !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quantity-btn:hover {
+    background: #007bff;
+    color: white !important;
+    border-color: #007bff;
+}
+
+.quantity-input {
+    width: 60px;
+    text-align: center;
+    border: 1px solid #4a5568;
+    border-radius: 4px;
+    padding: 4px;
+    background-color: #1a202c !important;
+    color: #ffffff !important;
+}
+
+.quantity-input:focus {
+    background-color: #2d3748 !important;
+    border-color: #007bff;
+    color: #ffffff !important;
+}
+
+.remove-item {
+    color: var(--bs-danger);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.remove-item:hover {
+    background: var(--bs-danger);
+    color: white;
+}
+
+/* Search results styling */
+#searchResults .item-card {
+    border-color: var(--bs-warning);
+}
+
+/* Empty state styling */
+.empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: #a0aec0 !important;
+}
+
+#emptyCart {
+    color: #a0aec0 !important;
+}
+
+#emptyCart p, #emptyCart small {
+    color: #a0aec0 !important;
+}
+
+/* Cart summary styling */
+#cartSummary {
+    color: #ffffff !important;
+}
+
+#cartSummary span, #cartSummary strong {
+    color: #ffffff !important;
+}
+
+/* Badge improvements */
+.badge.bg-success {
+    background-color: #28a745 !important;
+    color: #ffffff !important;
+}
+
+/* Small text improvements */
+small.text-muted {
+    color: #a0aec0 !important;
+}
+
+/* Price text styling */
+.card-text strong {
+    color: #28a745 !important;
+}
+
+/* Alert improvements */
+.alert-info {
+    background-color: #1a202c !important;
+    border-color: #17a2b8 !important;
+    color: #ffffff !important;
+}
+
+/* Modal customizations */
+.modal-content {
+    border-radius: 10px;
+}
+
+.modal-header.bg-success {
+    border-radius: 10px 10px 0 0;
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .btn,
+    .modal-footer {
+        display: none !important;
+    }
+    
+    .container {
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Success animation */
+@keyframes success-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.success-animation {
+    animation: success-pulse 0.3s ease-in-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .item-card {
+        margin-bottom: 10px;
+    }
+    
+    .cart-item-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 5px;
+    }
+    
+    .quantity-control {
+        justify-content: center;
+    }
+}
+
+/* Badge styling */
+.badge {
+    font-size: 0.75em;
+}
+
+/* Table responsive improvements */
+.table-responsive {
+    border-radius: 6px;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--bs-gray-700);
+    font-size: 0.875em;
+}
+
+/* Card hover effects */
+.card {
+    transition: box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Input group styling */
+.input-group-text {
+    background-color: var(--bs-gray-100);
+    border-color: var(--bs-gray-300);
+}
+
+/* Alert styling */
+.alert {
+    border-radius: 6px;
+    border: none;
+}
+
+/* Dropdown styling */
+.dropdown-menu {
+    border-radius: 6px;
+    border: 1px solid var(--bs-gray-200);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: var(--bs-gray-100);
+}

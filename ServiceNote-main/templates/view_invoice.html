@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Nota #{{ invoice.id }} - Sistem Manajemen Service{% endblock %}
+
+{% block content %}
+<div class="row no-print">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-receipt me-2"></i>Detail Nota #{{ invoice.id }}
+            </h1>
+            <div class="btn-group">
+                <a href="{{ url_for('download_pdf', invoice_id=invoice.id) }}" 
+                   class="btn btn-success">
+                    <i class="fas fa-download me-2"></i>Download PDF
+                </a>
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print me-2"></i>Print
+                </button>
+                <a href="{{ url_for('invoice_list') }}" class="btn btn-secondary">
+                    <i class="fas fa-list me-2"></i>Daftar Nota
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Content -->
+<div class="row">
+    <div class="col-12">
+        <!-- Company Header -->
+        <div class="invoice-header text-center mb-4">
+            <h1 class="display-6 text-primary mb-2">FJ SERVICE KOMPUTER LAPTOP HANDPHONE</h1>
+            <p class="mb-1">KP Jl. Pasir Wangi No.RT 01, RW 11, Kec. Lembang, Kabupaten</p>
+            <p class="mb-1">Bandung Barat, Jawa Barat 40391</p>
+            <p class="mb-0">
+                <i class="fas fa-phone me-1"></i>
+                <i class="fab fa-whatsapp me-1"></i>
+                Nomor Telepon / WA : 0818-0441-1937
+            </p>
+        </div>
+
+        <!-- Customer Information -->
+        <div class="invoice-details">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Nama Pembeli:</strong></td>
+                            <td>{{ invoice.customer_name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>No. Telepon:</strong></td>
+                            <td>{{ invoice.customer_phone }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Tanggal:</strong></td>
+                            <td>{{ invoice.date }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ID Nota:</strong></td>
+                            <td><span class="badge bg-primary">#{{ invoice.id }}</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Items Table -->
+        <div class="invoice-table">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th class="text-center" width="50">No</th>
+                        <th>Perbaikan</th>
+                        <th class="text-end" width="120">Harga</th>
+                        <th class="text-center" width="80">Jumlah</th>
+                        <th class="text-end" width="120">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice.service_items %}
+                    <tr>
+                        <td class="text-center">{{ loop.index }}</td>
+                        <td>{{ item.description }}</td>
+                        <td class="text-end">Rp{{ "{:,.0f}".format(item.price).replace(",", ".") }}</td>
+                        <td class="text-center">{{ item.quantity }}</td>
+                        <td class="text-end">Rp{{ "{:,.0f}".format(item.price * item.quantity).replace(",", ".") }}</td>
+                    </tr>
+                    {% endfor %}
+                    
+                    <!-- Fill empty rows to match template -->
+                    {% for i in range(10 - invoice.service_items|length) %}
+                    <tr>
+                        <td class="text-center">{{ invoice.service_items|length + loop.index }}</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totals Section -->
+        <div class="row">
+            <div class="col-md-8"></div>
+            <div class="col-md-4">
+                <table class="table table-bordered">
+                    <tr class="table-primary">
+                        <td><strong>Harga Asli</strong></td>
+                        <td class="text-end"><strong>Rp{{ "{:,.0f}".format(invoice.subtotal).replace(",", ".") }}</strong></td>
+                    </tr>
+                    <tr class="table-primary">
+                        <td><strong>Diskon</strong></td>
+                        <td class="text-end"><strong>Rp{{ "{:,.0f}".format(invoice.discount_amount).replace(",", ".") }}</strong></td>
+                    </tr>
+                    <tr class="table-primary">
+                        <td><strong>Harga Total</strong></td>
+                        <td class="text-end"><strong>Rp{{ "{:,.0f}".format(invoice.total).replace(",", ".") }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer Information -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <p class="small text-muted">* struk ini adalah bukti pembayaran dan klaim garansi</p>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="warranty-notice text-center py-3">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    GARANSI 3 BULAN
+                </div>
+            </div>
+            <div class="col-md-6 text-center">
+                <div class="mt-2">
+                    <p class="mb-1"><strong>Hormat Kami</strong></p>
+                    <div style="height: 60px;"></div>
+                    <p class="mb-0"><strong>Fajar Julyana</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons for Print View -->
+<div class="row mt-4 no-print">
+    <div class="col-12 text-center">
+        <div class="btn-group">
+            <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Buat Nota Baru
+            </a>
+            <a href="{{ url_for('invoice_list') }}" class="btn btn-success">
+                <i class="fas fa-list me-2"></i>Lihat Semua Nota
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-home me-2"></i>Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

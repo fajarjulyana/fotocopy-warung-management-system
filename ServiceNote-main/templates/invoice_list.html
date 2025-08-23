@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Daftar Nota - Sistem Manajemen Service{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-list me-2"></i>Daftar Nota Service
+            </h1>
+            <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Buat Nota Baru
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" id="search-form" class="row g-3">
+                    <div class="col-md-8">
+                        <label for="search-input" class="form-label">
+                            <i class="fas fa-search me-1"></i>Cari Nota
+                        </label>
+                        <input type="text" class="form-control" id="search-input" 
+                               name="q" value="{{ query or '' }}" 
+                               placeholder="Cari berdasarkan nama pelanggan atau nomor telepon...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Cari
+                            </button>
+                            {% if query %}
+                            <a href="{{ url_for('invoice_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Reset
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results Info -->
+{% if query %}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Hasil pencarian untuk "<strong>{{ query }}</strong>": 
+            <strong>{{ invoices|length }}</strong> nota ditemukan
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Invoices List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fas fa-table me-2"></i>
+                    {% if query %}
+                        Hasil Pencarian ({{ invoices|length }} nota)
+                    {% else %}
+                        Semua Nota Service ({{ invoices|length }} nota)
+                    {% endif %}
+                </span>
+                {% if invoices %}
+                <small class="text-muted">
+                    Total Pendapatan: <strong class="text-success">
+                        Rp{{ "{:,.0f}".format(invoices|sum(attribute='total')).replace(",", ".") }}
+                    </strong>
+                </small>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if invoices %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="80">ID</th>
+                                    <th width="100">Tanggal</th>
+                                    <th>Nama Pelanggan</th>
+                                    <th width="130">No. Telepon</th>
+                                    <th width="80">Items</th>
+                                    <th width="120">Total</th>
+                                    <th width="150">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in invoices %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">#{{ invoice.id }}</span>
+                                    </td>
+                                    <td>
+                                        <small>{{ invoice.date }}</small>
+                                    </td>
+                                    <td>
+                                        <strong>{{ invoice.customer_name }}</strong>
+                                        {% if invoice.service_items %}
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ invoice.service_items[0].description }}
+                                                {% if invoice.service_items|length > 1 %}
+                                                    (+{{ invoice.service_items|length - 1 }} lainnya)
+                                                {% endif %}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-phone me-1 text-muted"></i>
+                                        <small>{{ invoice.customer_phone }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ invoice.service_items|length }} item
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="total-amount">
+                                            Rp{{ "{:,.0f}".format(invoice.total).replace(",", ".") }}
+                                        </span>
+                                        {% if invoice.discount_amount > 0 %}
+                                            <br>
+                                            <small class="text-success">
+                                                Diskon: Rp{{ "{:,.0f}".format(invoice.discount_amount).replace(",", ".") }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" 
+                                               class="btn btn-outline-primary" title="Lihat Detail">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('download_pdf', invoice_id=invoice.id) }}" 
+                                               class="btn btn-outline-success" title="Download PDF">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            <button class="btn btn-outline-info" 
+                                                    onclick="copyToClipboard('{{ invoice.customer_phone }}')"
+                                                    title="Copy No. Telepon">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Summary Statistics -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-primary">{{ invoices|length }}</h5>
+                                            <p class="card-text">Total Nota</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-success">
+                                                Rp{{ "{:,.0f}".format(invoices|sum(attribute='total')).replace(",", ".") }}
+                                            </h5>
+                                            <p class="card-text">Total Pendapatan</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-info">
+                                                Rp{{ "{:,.0f}".format((invoices|sum(attribute='total')) / invoices|length if invoices else 0).replace(",", ".") }}
+                                            </h5>
+                                            <p class="card-text">Rata-rata per Nota</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title text-warning">
+                                                {{ invoices|map(attribute='service_items')|map('length')|sum }}
+                                            </h5>
+                                            <p class="card-text">Total Item Service</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        {% if query %}
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Tidak Ada Hasil</h5>
+                            <p class="text-muted mb-4">
+                                Tidak ditemukan nota yang sesuai dengan pencarian "{{ query }}"
+                            </p>
+                            <a href="{{ url_for('invoice_list') }}" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-list me-2"></i>Lihat Semua Nota
+                            </a>
+                        {% else %}
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Belum Ada Nota Service</h5>
+                            <p class="text-muted mb-4">Mulai membuat nota service untuk pelanggan Anda</p>
+                        {% endif %}
+                        <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Buat Nota Baru
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Back to Dashboard -->
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-home me-2"></i>Kembali ke Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Copy to clipboard functionality
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showAlert('Nomor telepon berhasil disalin: ' + text, 'success');
+    }).catch(function() {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showAlert('Nomor telepon berhasil disalin: ' + text, 'success');
+    });
+}
+
+// Auto-focus search input if query exists
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput && searchInput.value) {
+        searchInput.focus();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,155 @@
+
+{% extends "base.html" %}
+
+{% block title %}Hutang Pelanggan{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-credit-card me-2"></i>
+        Hutang Pelanggan
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('add_customer_debt') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>
+            Tambah Hutang
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Cari nama pelanggan...">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="status">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Semua Status</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Aktif</option>
+                    <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Terlambat</option>
+                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Lunas</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-search me-1"></i>
+                    Cari
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Debt List -->
+<div class="card">
+    <div class="card-body">
+        {% if debts %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Pelanggan</th>
+                        <th>Deskripsi</th>
+                        <th>Total Hutang</th>
+                        <th>Terbayar</th>
+                        <th>Sisa</th>
+                        <th>Jatuh Tempo</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for debt in debts %}
+                    <tr>
+                        <td>
+                            <strong>{{ debt.customer.name }}</strong><br>
+                            <small class="text-muted">{{ debt.customer.phone or '-' }}</small>
+                        </td>
+                        <td>
+                            {{ debt.description }}<br>
+                            {% if debt.invoice_number %}
+                            <small class="text-muted">Invoice: {{ debt.invoice_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ format_currency(debt.total_amount) }}</td>
+                        <td>{{ format_currency(debt.paid_amount) }}</td>
+                        <td>{{ format_currency(debt.remaining_amount) }}</td>
+                        <td>
+                            {% if debt.due_date %}
+                                {{ debt.due_date.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if debt.status == 'active' %}
+                                <span class="badge bg-warning">Aktif</span>
+                            {% elif debt.status == 'overdue' %}
+                                <span class="badge bg-danger">Terlambat</span>
+                            {% elif debt.status == 'paid' %}
+                                <span class="badge bg-success">Lunas</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if debt.status in ['active', 'overdue'] %}
+                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal{{ debt.id }}">
+                                <i class="fas fa-money-bill-wave me-1"></i>
+                                Bayar
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    
+                    <!-- Payment Modal -->
+                    {% if debt.status in ['active', 'overdue'] %}
+                    <div class="modal fade" id="paymentModal{{ debt.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Pembayaran Hutang</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{{ url_for('pay_debt', debt_id=debt.id) }}">
+                                    <div class="modal-body">
+                                        <p><strong>Pelanggan:</strong> {{ debt.customer.name }}</p>
+                                        <p><strong>Sisa Hutang:</strong> {{ format_currency(debt.remaining_amount) }}</p>
+                                        
+                                        <div class="mb-3">
+                                            <label for="payment_amount{{ debt.id }}" class="form-label">Jumlah Pembayaran</label>
+                                            <input type="number" class="form-control" id="payment_amount{{ debt.id }}" name="payment_amount" 
+                                                   step="0.01" max="{{ debt.remaining_amount }}" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="notes{{ debt.id }}" class="form-label">Catatan</label>
+                                            <textarea class="form-control" id="notes{{ debt.id }}" name="notes" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                        <button type="submit" class="btn btn-success">Catat Pembayaran</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Belum ada data hutang pelanggan</p>
+            <a href="{{ url_for('add_customer_debt') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>
+                Tambah Hutang Pertama
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

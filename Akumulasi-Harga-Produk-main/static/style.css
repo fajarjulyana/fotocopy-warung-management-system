@@ -1,0 +1,303 @@
+/* Custom styles for Akumulasi Harga Produk application */
+
+/* Root variables for consistent theming */
+:root {
+    --border-radius: 0.5rem;
+    --transition: all 0.3s ease;
+    --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Global styles */
+body {
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navigation enhancements */
+.navbar {
+    box-shadow: var(--shadow);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+/* Card enhancements */
+.card {
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    border: 1px solid var(--bs-border-color);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: 1px solid var(--bs-border-color);
+    font-weight: 600;
+}
+
+/* Button enhancements */
+.btn {
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Badge styles */
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+}
+
+/* Alert enhancements */
+.alert {
+    border-radius: var(--border-radius);
+    border: 1px solid;
+}
+
+.alert-info {
+    background-color: rgba(13, 202, 240, 0.1);
+    border-color: var(--bs-info);
+    color: var(--bs-info);
+}
+
+/* Package converter specific styles */
+#package_converter_section .card {
+    background: transparent !important;
+    border: 1px solid var(--bs-info);
+}
+
+#package_converter_section .card-body {
+    background: transparent !important;
+}
+
+#package_converter_section .alert-info {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+    border-color: var(--bs-info) !important;
+    color: var(--bs-info) !important;
+}
+
+#package_converter_section .form-label {
+    color: var(--bs-body-color) !important;
+}
+
+#package_converter_section .form-control,
+#package_converter_section .form-select {
+    background-color: var(--bs-body-bg) !important;
+    border-color: var(--bs-border-color) !important;
+    color: var(--bs-body-color) !important;
+}
+
+#package_converter_section .form-control:focus,
+#package_converter_section .form-select:focus {
+    background-color: var(--bs-body-bg) !important;
+    border-color: var(--bs-info) !important;
+    color: var(--bs-body-color) !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25) !important;
+}
+
+/* Form enhancements */
+.form-control, .form-select {
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Table enhancements */
+.table {
+    --bs-table-bg: transparent;
+}
+
+.table-hover tbody tr:hover {
+    --bs-table-hover-bg: rgba(var(--bs-emphasis-color-rgb), 0.075);
+    transform: translateX(2px);
+    transition: var(--transition);
+}
+
+/* Empty state styles */
+.text-center i.fa-inbox,
+.text-center i.fa-5x {
+    opacity: 0.5;
+}
+
+/* Cost breakdown cards */
+.cost-breakdown {
+    background: transparent;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Inventory styles */
+.stock-card {
+    background: transparent;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.stock-low {
+    border-color: var(--bs-warning) !important;
+    box-shadow: 0 0 0 0.125rem rgba(255, 193, 7, 0.25);
+}
+
+.stock-critical {
+    border-color: var(--bs-danger) !important;
+    box-shadow: 0 0 0 0.125rem rgba(220, 53, 69, 0.25);
+}
+
+.stock-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.stock-good { background-color: var(--bs-success); }
+.stock-warning { background-color: var(--bs-warning); }
+.stock-danger { background-color: var(--bs-danger); }
+
+/* Loading states */
+.btn.loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    margin: auto;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-right-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive enhancements */
+@media (max-width: 768px) {
+    .btn-group {
+        display: block;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .card-body {
+        padding: 1rem 0.75rem;
+    }
+}
+
+/* Custom utilities */
+.text-decoration-none:hover {
+    text-decoration: underline !important;
+}
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Footer styles */
+footer {
+    background-color: transparent;
+    border-top: 1px solid var(--bs-border-color);
+    margin-top: auto;
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bs-secondary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--bs-dark);
+}
+
+/* Print styles */
+@media print {
+    .btn, .navbar, footer {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+    
+    body {
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+}
