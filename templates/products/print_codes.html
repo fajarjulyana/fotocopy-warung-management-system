@@ -83,7 +83,7 @@
     <div class="product-info">
         <h1>{{ product.name }}</h1>
         <p><strong>ID Produk:</strong> {{ product.id }}</p>
-        <p><strong>Harga Jual:</strong> {{ format_currency(product.selling_price) }}</p>
+        <p><strong>Harga Jual:</strong> {{ "Rp {:,.0f}".format(product.selling_price).replace(',', '.') }}</p>
         {% if product.description %}
         <p><strong>Deskripsi:</strong> {{ product.description }}</p>
         {% endif %}

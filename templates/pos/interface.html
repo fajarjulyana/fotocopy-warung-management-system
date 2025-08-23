@@ -1,109 +1,107 @@
+
 {% extends "base.html" %}
 
-{% block title %}Kasir/POS{% endblock %}
-
-{% block extra_css %}
-<style>
-    .pos-container { height: calc(100vh - 100px); }
-    .item-grid { max-height: 400px; overflow-y: auto; }
-    .item-card { cursor: pointer; transition: all 0.2s; }
-    .item-card:hover { transform: scale(1.02); }
-    .cart-container { min-height: 300px; }
-    .total-display { font-size: 1.5rem; font-weight: bold; }
-</style>
-{% endblock %}
+{% block title %}Sistem Kasir/POS{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Kasir/POS</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <span class="badge bg-success me-2">{{ session.username }}</span>
-        <button class="btn btn-outline-secondary" onclick="clearCart()">
-            <i class="fas fa-trash me-2"></i>
-            Clear Cart
-        </button>
-    </div>
+    <h1 class="h2">
+        <i class="fas fa-cash-register me-2"></i>
+        Sistem Kasir/POS
+    </h1>
 </div>
 
-<div class="row pos-container">
-    <!-- Product Selection -->
-    <div class="col-md-7">
-        <div class="card h-100">
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
             <div class="card-header">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h6 class="mb-0">Pilih Produk</h6>
+                <h5 class="mb-0">Scan/Cari Produk</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="barcode-input" class="form-label">Scan Barcode/Kode Produk</label>
+                        <input type="text" class="form-control" id="barcode-input" placeholder="Scan barcode atau ketik kode produk">
                     </div>
-                    <div class="col-auto">
-                        <input type="text" class="form-control form-control-sm" id="searchInput" 
-                               placeholder="Cari produk..." onkeyup="searchProducts()">
+                    <div class="col-md-6">
+                        <label for="search-input" class="form-label">Cari Berdasarkan ID/Nama</label>
+                        <input type="text" class="form-control" id="search-input" placeholder="Ketik ID atau nama produk">
+                        <div id="search-results" class="mt-2"></div>
                     </div>
                 </div>
             </div>
-            <div class="card-body item-grid">
-                <div class="row g-3" id="itemGrid">
-                    {% for item in items %}
-                    <div class="col-md-4 item-row" data-name="{{ item.product.name.lower() }}" data-code="{{ item.code.lower() }}">
-                        <div class="card item-card" onclick="addToCart({{ item.id }}, '{{ item.code }}', '{{ item.product.name }}', {{ item.selling_price }}, {{ item.current_stock }})">
-                            <div class="card-body text-center p-2">
-                                <h6 class="card-title mb-1">{{ item.product.name }}</h6>
-                                <p class="card-text">
-                                    <small class="text-muted">{{ item.code }}</small><br>
-                                    <strong class="text-success">{{ format_currency(item.selling_price) }}</strong><br>
-                                    <small class="text-info">Stok: {{ item.current_stock }}</small>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Keranjang Belanja</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="cart-table">
+                        <thead>
+                            <tr>
+                                <th>Produk</th>
+                                <th>Harga</th>
+                                <th>Jumlah</th>
+                                <th>Subtotal</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cart-body">
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Cart and Checkout -->
-    <div class="col-md-5">
-        <div class="card h-100">
+    <div class="col-md-4">
+        <div class="card sticky-top">
             <div class="card-header">
-                <h6 class="mb-0">Keranjang Belanja</h6>
+                <h5 class="mb-0">Kasir</h5>
             </div>
-            <div class="card-body cart-container">
-                <div id="cartItems" class="mb-3">
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-shopping-cart fa-3x mb-3"></i>
-                        <p>Keranjang kosong</p>
-                    </div>
-                </div>
-
-                <div class="border-top pt-3">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Subtotal:</span>
-                        <span id="subtotal" class="fw-bold">Rp 0</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-3 total-display text-primary">
-                        <span>Total:</span>
-                        <span id="total">Rp 0</span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="paymentAmount" class="form-label">Jumlah Bayar</label>
-                        <input type="number" class="form-control" id="paymentAmount" 
-                               placeholder="0" onkeyup="calculateChange()">
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Kembalian:</span>
-                            <span id="change" class="fw-bold text-success">Rp 0</span>
+            <div class="card-body">
+                <!-- Receipt Preview -->
+                <div class="card mb-3" style="background-color: #1a1a1a; max-height: 300px; overflow-y: auto;">
+                    <div class="card-body p-2" id="receipt-preview" style="font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00;">
+                        <div class="text-center">
+                            <div style="color: #ffffff;">==========================================</div>
+                            <div style="color: #00ff00; font-weight: bold;">PREVIEW STRUK</div>
+                            <div style="color: #ffffff;">==========================================</div>
+                            <div id="preview-content">
+                                <div class="text-center mt-3" style="color: #666;">
+                                    <i class="fas fa-shopping-cart"></i><br>
+                                    Keranjang kosong
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="d-grid">
-                        <button class="btn btn-success btn-lg" id="checkoutBtn" onclick="processCheckout()" disabled>
-                            <i class="fas fa-credit-card me-2"></i>
-                            Checkout
-                        </button>
-                    </div>
+                </div>
+                
+                <!-- Payment Section -->
+                <div class="text-center mb-3">
+                    <h3 class="text-primary" id="total-amount">Rp 0</h3>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="payment-amount" class="form-label">Jumlah Bayar</label>
+                    <input type="number" class="form-control" id="payment-amount" placeholder="0" min="0">
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Kembalian: <span id="change-amount">Rp 0</span></strong>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success btn-lg" id="process-sale" disabled>
+                        <i class="fas fa-money-bill me-2"></i>
+                        Proses Pembayaran
+                    </button>
+                    <button class="btn btn-outline-secondary" id="clear-cart">
+                        <i class="fas fa-trash me-2"></i>
+                        Kosongkan Keranjang
+                    </button>
                 </div>
             </div>
         </div>
@@ -111,283 +109,313 @@
 </div>
 
 <!-- Receipt Modal -->
-<div class="modal fade" id="receiptModal" tabindex="-1">
+<div class="modal fade" id="receipt-modal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Struk Pembayaran</h5>
+                <h5 class="modal-title">Transaksi Berhasil</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="receiptContent">
-                <!-- Receipt content will be generated here -->
+            <div class="modal-body text-center">
+                <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                <h4>Pembayaran Berhasil!</h4>
+                <p>Transaksi ID: <span id="transaction-id"></span></p>
+                <p>Total: <span id="receipt-total"></span></p>
+                <p>Kembalian: <span id="receipt-change"></span></p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
-                <button type="button" class="btn btn-primary" onclick="printReceipt()">
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary" id="print-receipt">
                     <i class="fas fa-print me-2"></i>
-                    Print
+                    Cetak Struk PDF
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Tutup
                 </button>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
 let cart = [];
-let totalAmount = 0;
+let items = {{ items|tojson }};
 
-function searchProducts() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
-    const items = document.querySelectorAll('.item-row');
-
-    items.forEach(item => {
-        const name = item.dataset.name;
-        const code = item.dataset.code;
-
-        if (name.includes(query) || code.includes(query)) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
+// Barcode scanner auto-enter functionality
+document.getElementById('barcode-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const barcode = this.value.trim();
+        if (barcode) {
+            const cartSizeBefore = cart.length;
+            const existingItemQuantity = cart.find(c => c.barcode === barcode)?.quantity || 0;
+            
+            searchByBarcode(barcode);
+            
+            // Visual feedback - flash green border if item was added
+            const newCartSize = cart.length;
+            const newItemQuantity = cart.find(c => c.barcode === barcode)?.quantity || 0;
+            
+            if (newCartSize > cartSizeBefore || newItemQuantity > existingItemQuantity) {
+                this.style.borderColor = '#28a745';
+                this.style.boxShadow = '0 0 5px rgba(40, 167, 69, 0.5)';
+                setTimeout(() => {
+                    this.style.borderColor = '';
+                    this.style.boxShadow = '';
+                }, 300);
+            }
+            
+            this.value = '';
         }
-    });
+    }
+});
+
+// Search functionality
+document.getElementById('search-input').addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    const resultsDiv = document.getElementById('search-results');
+    
+    if (query.length < 2) {
+        resultsDiv.innerHTML = '';
+        return;
+    }
+    
+    const results = items.filter(item => 
+        (item.code && item.code.toLowerCase().includes(query)) || 
+        (item.name && item.name.toLowerCase().includes(query)) ||
+        (item.barcode && item.barcode.toLowerCase().includes(query))
+    ).slice(0, 5);
+    
+    resultsDiv.innerHTML = results.map(item => `
+        <div class="border rounded p-2 mb-2 search-result" style="cursor: pointer;" onclick="addToCart('${item.id}')">
+            <strong>${item.name}</strong><br>
+            <small>ID: ${item.id} | Harga: ${formatCurrency(item.selling_price)} | Stok: ${item.current_stock}</small>
+        </div>
+    `).join('');
+});
+
+function searchByBarcode(barcode) {
+    // Search by product ID, barcode, or QR code
+    const item = items.find(i => 
+        i.id === barcode || 
+        (i.barcode && i.barcode === barcode) || 
+        (i.qr_code && i.qr_code === barcode)
+    );
+    
+    if (item) {
+        addToCart(item.id);
+    }
+    // No alert for not found - silent operation like real cashier machine
 }
 
-function addToCart(id, code, name, price, stock) {
-    const existingItem = cart.find(item => item.id === id);
-
+function addToCart(itemId) {
+    const item = items.find(i => i.id === itemId);
+    if (!item) {
+        return; // Silent fail
+    }
+    
+    if (item.current_stock <= 0) {
+        return; // Silent fail - no stock
+    }
+    
+    // Check if item already exists in cart
+    const existingItem = cart.find(c => c.id === itemId);
     if (existingItem) {
-        if (existingItem.quantity < stock) {
-            existingItem.quantity += 1;
-            existingItem.subtotal = existingItem.quantity * price;
-        } else {
-            alert('Stok tidak mencukupi!');
-            return;
+        // Item already in cart, increase quantity
+        if (existingItem.quantity >= item.current_stock) {
+            return; // Silent fail - not enough stock
         }
+        existingItem.quantity++;
     } else {
+        // New item, add to cart
         cart.push({
-            id: id,
-            code: code,
-            name: name,
-            price: price,
+            id: item.id,
+            name: item.name,
+            barcode: item.barcode || item.id,
+            selling_price: item.selling_price,
             quantity: 1,
-            subtotal: price,
-            stock: stock
+            max_stock: item.current_stock
         });
     }
+    
+    updateCartDisplay();
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-results').innerHTML = '';
+}
 
+function removeFromCart(itemId) {
+    cart = cart.filter(item => item.id !== itemId);
     updateCartDisplay();
 }
 
-function removeFromCart(id) {
-    cart = cart.filter(item => item.id !== id);
-    updateCartDisplay();
-}
-
-function updateQuantity(id, newQuantity) {
-    const item = cart.find(item => item.id === id);
-    if (item) {
+function updateQuantity(itemId, newQuantity) {
+    const cartItem = cart.find(item => item.id === itemId);
+    if (cartItem) {
         if (newQuantity <= 0) {
-            removeFromCart(id);
-        } else if (newQuantity <= item.stock) {
-            item.quantity = newQuantity;
-            item.subtotal = item.quantity * item.price;
+            removeFromCart(itemId);
+        } else if (newQuantity <= cartItem.max_stock) {
+            cartItem.quantity = newQuantity;
             updateCartDisplay();
-        } else {
-            alert('Stok tidak mencukupi!');
         }
+        // Silent fail if quantity exceeds stock
     }
 }
 
 function updateCartDisplay() {
-    const cartContainer = document.getElementById('cartItems');
-
+    const tbody = document.getElementById('cart-body');
+    
     if (cart.length === 0) {
-        cartContainer.innerHTML = `
-            <div class="text-center text-muted py-5">
-                <i class="fas fa-shopping-cart fa-3x mb-3"></i>
-                <p>Keranjang kosong</p>
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Keranjang kosong</td></tr>';
+    } else {
+        tbody.innerHTML = cart.map(item => {
+            const subtotal = item.selling_price * item.quantity;
+            return `
+                <tr>
+                    <td>
+                        <strong>${item.name}</strong><br>
+                        <small class="text-muted">ID: ${item.id}</small>
+                    </td>
+                    <td>${formatCurrency(item.selling_price)}</td>
+                    <td>
+                        <div class="input-group input-group-sm" style="width: 120px;">
+                            <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('${item.id}', ${item.quantity - 1})">-</button>
+                            <input type="number" class="form-control text-center" value="${item.quantity}" 
+                                   onchange="updateQuantity('${item.id}', parseInt(this.value))" min="1" max="${item.max_stock}">
+                            <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('${item.id}', ${item.quantity + 1})">+</button>
+                        </div>
+                    </td>
+                    <td><strong>${formatCurrency(subtotal)}</strong></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    updateTotals();
+    updateReceiptPreview();
+}
+
+function updateReceiptPreview() {
+    const previewContent = document.getElementById('preview-content');
+    const now = new Date();
+    
+    if (cart.length === 0) {
+        previewContent.innerHTML = `
+            <div class="text-center mt-3" style="color: #666;">
+                <i class="fas fa-shopping-cart"></i><br>
+                Keranjang kosong
             </div>
         `;
-        totalAmount = 0;
-    } else {
-        let html = '';
-        totalAmount = 0;
-
-        cart.forEach(item => {
-            totalAmount += item.subtotal;
-            html += `
-                <div class="border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">${item.name}</h6>
-                            <small class="text-muted">${item.code}</small>
-                        </div>
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${item.id})">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="row align-items-center mt-2">
-                        <div class="col-6">
-                            <div class="input-group input-group-sm">
-                                <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">-</button>
-                                <input type="number" class="form-control text-center" value="${item.quantity}" 
-                                       onchange="updateQuantity(${item.id}, parseInt(this.value))" min="1" max="${item.stock}">
-                                <button class="btn btn-outline-secondary" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">+</button>
-                            </div>
-                        </div>
-                        <div class="col-6 text-end">
-                            <strong>${formatCurrency(item.subtotal)}</strong>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        cartContainer.innerHTML = html;
+        return;
     }
-
-    document.getElementById('subtotal').textContent = formatCurrency(totalAmount);
-    document.getElementById('total').textContent = formatCurrency(totalAmount);
-    document.getElementById('checkoutBtn').disabled = cart.length === 0;
-
-    calculateChange();
+    
+    const total = cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
+    
+    let receiptHTML = `
+        <div style="color: #00ff00; font-weight: bold;">TOKO FAJARMANDIRI</div>
+        <div style="color: #ffffff; font-size: 9px;">Jl. Contoh No. 123, Jakarta</div>
+        <div style="color: #ffffff; font-size: 9px;">Telp: 0812-3456-7890</div>
+        <div style="color: #ffffff;">==========================================</div>
+        <div style="color: #00ff00;">STRUK BELANJA</div>
+        <div style="color: #ffffff;">==========================================</div>
+        <div style="color: #ffffff; font-size: 9px;">Ref: ${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}</div>
+        <div style="color: #ffffff; font-size: 9px;">Tgl: ${now.toLocaleDateString('id-ID')}</div>
+        <div style="color: #ffffff; font-size: 9px;">Jam: ${now.toLocaleTimeString('id-ID')}</div>
+        <div style="color: #ffffff;">------------------------------------------</div>
+    `;
+    
+    cart.forEach((item, index) => {
+        const subtotal = item.selling_price * item.quantity;
+        receiptHTML += `
+            <div style="color: #ffffff; font-size: 9px;">${index + 1}. ${item.name.substring(0, 25)}</div>
+            <div style="color: #ffffff; font-size: 9px;">   ${item.quantity} x ${formatCurrency(item.selling_price).replace('Rp ', '')} = ${formatCurrency(subtotal).replace('Rp ', '')}</div>
+        `;
+    });
+    
+    receiptHTML += `
+        <div style="color: #ffffff;">------------------------------------------</div>
+        <div style="color: #00ff00; font-weight: bold;">TOTAL: ${formatCurrency(total)}</div>
+        <div style="color: #ffffff;">==========================================</div>
+        <div style="color: #00ff00;">*** TERIMA KASIH ***</div>
+        <div style="color: #ffffff; font-size: 9px;">SELAMAT BERBELANJA KEMBALI</div>
+    `;
+    
+    previewContent.innerHTML = receiptHTML;
 }
 
-function calculateChange() {
-    const paymentAmount = parseFloat(document.getElementById('paymentAmount').value) || 0;
-    const change = paymentAmount - totalAmount;
-    document.getElementById('change').textContent = formatCurrency(Math.max(0, change));
-
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    checkoutBtn.disabled = cart.length === 0 || paymentAmount < totalAmount;
+function updateTotals() {
+    const total = cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
+    document.getElementById('total-amount').textContent = formatCurrency(total);
+    
+    const paymentAmount = parseFloat(document.getElementById('payment-amount').value) || 0;
+    const change = Math.max(0, paymentAmount - total);
+    document.getElementById('change-amount').textContent = formatCurrency(change);
+    
+    const processButton = document.getElementById('process-sale');
+    processButton.disabled = cart.length === 0 || paymentAmount < total;
 }
 
-function processCheckout() {
-    const paymentAmount = parseFloat(document.getElementById('paymentAmount').value);
+document.getElementById('payment-amount').addEventListener('input', updateTotals);
+document.getElementById('clear-cart').addEventListener('click', function() {
+    if (confirm('Kosongkan semua item di keranjang?')) {
+        cart = [];
+        updateCartDisplay();
+    }
+});
 
-    if (paymentAmount < totalAmount) {
+document.getElementById('process-sale').addEventListener('click', function() {
+    const total = cart.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
+    const paymentAmount = parseFloat(document.getElementById('payment-amount').value) || 0;
+    
+    if (paymentAmount < total) {
         alert('Jumlah bayar kurang!');
         return;
     }
-
+    
     const transactionData = {
         items: cart,
         payment_amount: paymentAmount
     };
-
+    
     fetch('/pos/process_sale', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify(transactionData)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Show success message with download option
-            const download = confirm('Transaksi berhasil!\nTotal: ' + formatCurrency(data.total) + 
-                  '\nBayar: ' + formatCurrency(data.payment_amount) + 
-                  '\nKembali: ' + formatCurrency(data.change) +
-                  '\n\nDownload struk PDF?');
-
-            if (download) {
-                window.open('/pos/receipt/' + data.transaction_id, '_blank');
-            }
-
-            // Reset form
+            document.getElementById('transaction-id').textContent = data.transaction_id;
+            document.getElementById('receipt-total').textContent = formatCurrency(data.total);
+            document.getElementById('receipt-change').textContent = formatCurrency(data.change);
+            
+            // Show receipt modal
+            const receiptModal = new bootstrap.Modal(document.getElementById('receipt-modal'));
+            receiptModal.show();
+            
+            // Set up print button
+            document.getElementById('print-receipt').onclick = function() {
+                window.open(`/pos/receipt/${data.transaction_id}`, '_blank');
+            };
+            
+            // Clear cart
             cart = [];
             updateCartDisplay();
-            document.getElementById('paymentAmount').value = '';
-            document.getElementById('change').textContent = formatCurrency(0);
+            document.getElementById('payment-amount').value = '';
         } else {
             alert('Error: ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Terjadi kesalahan saat memproses transaksi');
+        alert('Terjadi kesalahan saat memproses transaksi!');
     });
-}
-
-function showReceipt(data) {
-    const receiptContent = document.getElementById('receiptContent');
-    let itemsHtml = '';
-
-    data.items.forEach(item => {
-        itemsHtml += `
-            <tr>
-                <td>${item.name}</td>
-                <td class="text-center">${item.quantity}</td>
-                <td class="text-end">${formatCurrency(item.selling_price)}</td>
-                <td class="text-end">${formatCurrency(item.subtotal)}</td>
-            </tr>
-        `;
-    });
-
-    receiptContent.innerHTML = `
-        <div class="text-center mb-4">
-            <h5>STRUK PEMBAYARAN</h5>
-            <p class="mb-0">Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
-            <p class="mb-0">Waktu: ${new Date().toLocaleTimeString('id-ID')}</p>
-            <p class="mb-0">ID Transaksi: #${data.transaction_id}</p>
-        </div>
-
-        <table class="table table-sm">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th class="text-center">Qty</th>
-                    <th class="text-end">Harga</th>
-                    <th class="text-end">Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${itemsHtml}
-            </tbody>
-        </table>
-
-        <div class="border-top pt-3">
-            <div class="row">
-                <div class="col-6"><strong>Total:</strong></div>
-                <div class="col-6 text-end"><strong>${formatCurrency(data.total)}</strong></div>
-            </div>
-            <div class="row">
-                <div class="col-6">Bayar:</div>
-                <div class="col-6 text-end">${formatCurrency(data.payment_amount)}</div>
-            </div>
-            <div class="row">
-                <div class="col-6">Kembalian:</div>
-                <div class="col-6 text-end">${formatCurrency(data.change)}</div>
-            </div>
-        </div>
-
-        <div class="text-center mt-4">
-            <p class="mb-0"><small>Terima kasih atas kunjungan Anda!</small></p>
-        </div>
-    `;
-
-    const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
-    receiptModal.show();
-}
-
-function printReceipt() {
-    const printContent = document.getElementById('receiptContent').innerHTML;
-    const originalContent = document.body.innerHTML;
-
-    document.body.innerHTML = printContent;
-    window.print();
-    document.body.innerHTML = originalContent;
-    location.reload();
-}
-
-function clearCart() {
-    cart = [];
-    updateCartDisplay();
-    document.getElementById('paymentAmount').value = '';
-}
+});
 
 function formatCurrency(amount) {
     return new Intl.NumberFormat('id-ID', {

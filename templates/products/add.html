@@ -7,7 +7,7 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Tambah Produk Baru</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{{ url_for('products') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('products') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>
             Kembali
         </a>
@@ -17,111 +17,260 @@
 <div class="row">
     <div class="col-md-8">
         <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Informasi Produk</h5>
+            </div>
             <div class="card-body">
                 <form method="POST">
-                    <div class="row">
+                    <!-- Basic Information -->
+                    <div class="row mb-3">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="product_id" class="form-label">ID Produk *</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="product_id" name="product_id" 
-                                           value="{{ generated_id }}" placeholder="Auto-generated">
-                                    <button type="button" class="btn btn-outline-secondary" onclick="generateNewId()">
-                                        <i class="fas fa-sync"></i>
-                                    </button>
-                                </div>
-                                <div class="form-text">ID akan di-generate otomatis atau masukkan manual</div>
+                            <label for="product_id" class="form-label">ID Produk</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="product_id" name="product_id" 
+                                       value="{{ generated_id }}" readonly>
+                                <button type="button" class="btn btn-outline-secondary" onclick="generateNewId()">
+                                    <i class="fas fa-refresh"></i>
+                                </button>
                             </div>
+                            <small class="text-muted">ID unik untuk produk</small>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Nama Produk *</label>
-                                <input type="text" class="form-control" id="name" name="name" required 
-                                       placeholder="Masukkan nama produk">
-                            </div>
+                            <label for="name" class="form-label">Nama Produk *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="category" class="form-label">Kategori</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="">Pilih Kategori</option>
+                                <option value="Elektronik">Elektronik</option>
+                                <option value="Pakaian">Pakaian</option>
+                                <option value="Makanan">Makanan</option>
+                                <option value="Minuman">Minuman</option>
+                                <option value="Kesehatan">Kesehatan</option>
+                                <option value="Kecantikan">Kecantikan</option>
+                                <option value="Rumah Tangga">Rumah Tangga</option>
+                                <option value="Olahraga">Olahraga</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="brand" class="form-label">Merek</label>
+                            <input type="text" class="form-control" id="brand" name="brand">
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="description" class="form-label">Deskripsi</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" 
-                                  placeholder="Deskripsi produk (opsional)"></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                     </div>
 
-                    <div class="row">
+                    <div class="row mb-3">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="purchase_price" class="form-label">Harga Beli *</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="number" class="form-control" id="purchase_price" name="purchase_price" 
-                                           step="0.01" min="0" value="0" required>
-                                </div>
+                            <label for="supplier" class="form-label">Supplier</label>
+                            <input type="text" class="form-control" id="supplier" name="supplier">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="unit" class="form-label">Satuan</label>
+                            <select class="form-select" id="unit" name="unit">
+                                <option value="pcs">Pcs (Pieces)</option>
+                                <option value="kg">Kg (Kilogram)</option>
+                                <option value="gram">Gram</option>
+                                <option value="liter">Liter</option>
+                                <option value="ml">Ml (Mililiter)</option>
+                                <option value="meter">Meter</option>
+                                <option value="cm">Cm (Centimeter)</option>
+                                <option value="box">Box</option>
+                                <option value="pack">Pack</option>
+                                <option value="dozen">Dozen</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Pricing Information -->
+                    <h6 class="text-primary mt-4 mb-3"><i class="fas fa-money-bill-wave me-2"></i>Informasi Harga</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="purchase_price" class="form-label">Harga Beli (HB) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="purchase_price" name="purchase_price" 
+                                       min="0" step="0.01" required oninput="calculateProfit()">
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="selling_price" class="form-label">Harga Jual *</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="number" class="form-control" id="selling_price" name="selling_price" 
-                                           step="0.01" min="0" value="0" required>
-                                </div>
+                            <label for="selling_price" class="form-label">Harga Jual (HJ) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="selling_price" name="selling_price" 
+                                       min="0" step="0.01" required oninput="calculateProfit()">
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Profit per Unit</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" class="form-control" id="profit_per_unit" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Margin (%)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="margin_percent" readonly>
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="expiry_date" class="form-label">Tanggal Kedaluwarsa</label>
+                            <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                        </div>
+                    </div>
+
+                    <!-- Stock Information -->
+                    <h6 class="text-success mt-4 mb-3"><i class="fas fa-boxes me-2"></i>Informasi Stok</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="initial_stock" class="form-label">Stok Awal (SA) *</label>
+                            <input type="number" class="form-control" id="initial_stock" name="initial_stock" 
+                                   min="0" required oninput="calculateFinalStock()">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="additional_stock" class="form-label">Pembelian</label>
+                            <input type="number" class="form-control" id="additional_stock" name="additional_stock" 
+                                   min="0" value="0" oninput="calculateFinalStock()">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="current_stock" class="form-label">Stok Akhir (SK) *</label>
+                            <input type="number" class="form-control" id="current_stock" name="current_stock" 
+                                   min="0" required oninput="calculateSoldItems()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Barang Terjual (BT)</label>
+                            <input type="text" class="form-control" id="items_sold" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="minimum_stock" class="form-label">Minimum Stok</label>
+                            <input type="number" class="form-control" id="minimum_stock" name="minimum_stock" 
+                                   min="0" value="5">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="maximum_stock" class="form-label">Maximum Stok</label>
+                            <input type="number" class="form-control" id="maximum_stock" name="maximum_stock" 
+                                   min="0" value="1000">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="weight" class="form-label">Berat (kg)</label>
+                            <input type="number" class="form-control" id="weight" name="weight" 
+                                   min="0" step="0.01">
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="initial_stock" class="form-label">Stok Awal *</label>
-                        <input type="number" class="form-control" id="initial_stock" name="initial_stock" 
-                               min="0" value="0" required>
-                        <div class="form-text">Jumlah stok produk saat pertama kali ditambahkan</div>
+                        <label for="dimensions" class="form-label">Dimensi (P x L x T)</label>
+                        <input type="text" class="form-control" id="dimensions" name="dimensions" 
+                               placeholder="contoh: 10 x 5 x 3 cm">
                     </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('products') }}" class="btn btn-outline-secondary me-md-2">
-                            Batal
-                        </a>
+                    <!-- Profit Calculation Display -->
+                    <div class="card bg-light mt-4">
+                        <div class="card-body">
+                            <h6 class="text-info mb-3"><i class="fas fa-calculator me-2"></i>Kalkulasi Profit</h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Pendapatan (R)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Rp</span>
+                                        <input type="text" class="form-control" id="total_revenue" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Modal (C)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Rp</span>
+                                        <input type="text" class="form-control" id="total_cost" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Total Profit</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Rp</span>
+                                        <input type="text" class="form-control" id="total_profit" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Margin Total</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="total_margin" readonly>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="button" class="btn btn-secondary me-md-2" onclick="resetForm()">
+                            <i class="fas fa-undo me-2"></i>Reset
+                        </button>
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>
-                            Simpan Produk
+                            <i class="fas fa-save me-2"></i>Simpan Produk
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Panduan
-                </h6>
+                <h6 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Formula</h6>
             </div>
             <div class="card-body">
-                <small class="text-muted">
-                    <strong>ID Produk:</strong> Auto-generated unik atau input manual.
-                    <br><br>
-                    <strong>Barcode & QR:</strong> Akan di-generate otomatis berdasarkan ID dan nama produk.
-                    <br><br>
-                    <strong>Profit:</strong> Akan dihitung otomatis berdasarkan: (Harga Jual - Harga Beli) × (Stok Awal - Stok Akhir).
-                </small>
+                <h6 class="text-primary">Formula Bisnis</h6>
+                <ul class="list-unstyled">
+                    <li><strong>BT</strong> = SA + Pembelian - SK</li>
+                    <li><strong>R</strong> = HJ × BT</li>
+                    <li><strong>C</strong> = HB × BT</li>
+                    <li><strong>Profit</strong> = R - C</li>
+                    <li><strong>Margin</strong> = (Profit / R) × 100%</li>
+                </ul>
+
+                <h6 class="text-success mt-4">Keterangan</h6>
+                <ul class="list-unstyled small">
+                    <li><strong>HB</strong> = Harga Beli</li>
+                    <li><strong>HJ</strong> = Harga Jual</li>
+                    <li><strong>SA</strong> = Stok Awal</li>
+                    <li><strong>SK</strong> = Stok Akhir</li>
+                    <li><strong>BT</strong> = Barang Terjual</li>
+                    <li><strong>R</strong> = Revenue (Pendapatan)</li>
+                    <li><strong>C</strong> = Cost (Modal)</li>
+                </ul>
+
+                <div class="alert alert-info mt-3">
+                    <small>
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Sistem akan otomatis menghitung profit berdasarkan formula di atas
+                    </small>
+                </div>
             </div>
         </div>
-        
+
         <div class="card mt-3">
             <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-barcode me-2"></i>
-                    Preview Codes
-                </h6>
+                <h6 class="card-title mb-0"><i class="fas fa-barcode me-2"></i>Codes Preview</h6>
             </div>
             <div class="card-body text-center">
-                <div id="codePreview">
-                    <small class="text-muted">Barcode dan QR code akan dibuat setelah produk disimpan</small>
-                </div>
+                <p class="text-muted">Barcode dan QR code akan dibuat otomatis setelah produk disimpan</p>
             </div>
         </div>
     </div>
@@ -135,8 +284,84 @@ function generateNewId() {
             document.getElementById('product_id').value = data.product_id;
         })
         .catch(error => {
-            console.error('Error generating ID:', error);
+            console.error('Error generating product ID:', error);
         });
 }
+
+function calculateProfit() {
+    const purchasePrice = parseFloat(document.getElementById('purchase_price').value) || 0;
+    const sellingPrice = parseFloat(document.getElementById('selling_price').value) || 0;
+    
+    const profitPerUnit = sellingPrice - purchasePrice;
+    const marginPercent = sellingPrice > 0 ? ((profitPerUnit / sellingPrice) * 100) : 0;
+    
+    document.getElementById('profit_per_unit').value = formatCurrency(profitPerUnit);
+    document.getElementById('margin_percent').value = marginPercent.toFixed(2);
+    
+    calculateTotalProfit();
+}
+
+function calculateFinalStock() {
+    const initialStock = parseInt(document.getElementById('initial_stock').value) || 0;
+    const additionalStock = parseInt(document.getElementById('additional_stock').value) || 0;
+    
+    // Auto-set current stock to initial + additional if not manually changed
+    const currentStockField = document.getElementById('current_stock');
+    if (!currentStockField.dataset.manuallySet) {
+        currentStockField.value = initialStock + additionalStock;
+    }
+    
+    calculateSoldItems();
+}
+
+function calculateSoldItems() {
+    const initialStock = parseInt(document.getElementById('initial_stock').value) || 0;
+    const additionalStock = parseInt(document.getElementById('additional_stock').value) || 0;
+    const currentStock = parseInt(document.getElementById('current_stock').value) || 0;
+    
+    const itemsSold = Math.max(0, initialStock + additionalStock - currentStock);
+    document.getElementById('items_sold').value = itemsSold;
+    
+    calculateTotalProfit();
+}
+
+function calculateTotalProfit() {
+    const purchasePrice = parseFloat(document.getElementById('purchase_price').value) || 0;
+    const sellingPrice = parseFloat(document.getElementById('selling_price').value) || 0;
+    const itemsSold = parseInt(document.getElementById('items_sold').value) || 0;
+    
+    const totalRevenue = sellingPrice * itemsSold;
+    const totalCost = purchasePrice * itemsSold;
+    const totalProfit = totalRevenue - totalCost;
+    const totalMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100) : 0;
+    
+    document.getElementById('total_revenue').value = formatCurrency(totalRevenue);
+    document.getElementById('total_cost').value = formatCurrency(totalCost);
+    document.getElementById('total_profit').value = formatCurrency(totalProfit);
+    document.getElementById('total_margin').value = totalMargin.toFixed(2);
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID').format(Math.round(amount));
+}
+
+function resetForm() {
+    if (confirm('Apakah Anda yakin ingin mereset form?')) {
+        document.querySelector('form').reset();
+        generateNewId();
+    }
+}
+
+// Mark current stock as manually set when user types in it
+document.getElementById('current_stock').addEventListener('input', function() {
+    this.dataset.manuallySet = 'true';
+    calculateSoldItems();
+});
+
+// Initialize calculations
+document.addEventListener('DOMContentLoaded', function() {
+    calculateProfit();
+    calculateSoldItems();
+});
 </script>
 {% endblock %}

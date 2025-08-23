@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Edit Produk{% endblock %}
@@ -80,11 +79,41 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label for="additional_stock" class="form-label">Stok Tambahan *</label>
+                        <input type="number" class="form-control" id="additional_stock" name="additional_stock" 
+                               min="0" value="0" required>
+                    </div>
 
-                    <div class="alert alert-info">
-                        <strong>Profit saat ini:</strong> {{ format_currency(product.profit) }}
-                        <br>
-                        <small>Profit dihitung: (Harga Jual - Harga Beli) × (Stok Awal - Stok Akhir)</small>
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Perkiraan Profit
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p><strong>Barang Terjual:</strong> <span id="items-sold">{{ product.items_sold }}</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><strong>Pendapatan:</strong> <span id="revenue">{{ format_currency(product.total_revenue or 0) }}</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><strong>Modal:</strong> <span id="cost">{{ format_currency(product.cost) }}</span></p>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <p><strong>Profit:</strong> <span id="profit-amount">{{ format_currency(product.profit) }}</span> <span id="profit-status" class="badge {{ 'bg-success' if product.profit > 0 else ('bg-danger' if product.profit < 0 else 'bg-warning') }}">{{ 'UNTUNG' if product.profit > 0 else ('RUGI' if product.profit < 0 else 'IMPAS') }}</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Margin:</strong> <span id="profit-margin">{{ product.margin }}%</span></p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -100,7 +129,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
@@ -133,4 +162,67 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Update profit calculation
+function updateProfitCalculation() {
+    const purchasePrice = parseFloat(document.getElementById('purchase_price').value) || 0;
+    const sellingPrice = parseFloat(document.getElementById('selling_price').value) || 0;
+    const initialStock = parseFloat(document.getElementById('initial_stock').value) || 0;
+    const currentStock = parseFloat(document.getElementById('current_stock').value) || 0;
+    const additionalStock = parseFloat(document.getElementById('additional_stock').value) || 0;
+
+    // Rumus: BT = SA + Pembelian - SK
+    const itemsSold = initialStock + additionalStock - currentStock;
+
+    // Pendapatan: R = HJ × BT
+    const revenue = sellingPrice * itemsSold;
+
+    // Modal: C = HB × BT
+    const cost = purchasePrice * itemsSold;
+
+    // Profit = R - C
+    const profit = revenue - cost;
+
+    // Margin = (Profit / Revenue) × 100%
+    const margin = revenue > 0 ? ((profit / revenue) * 100) : 0;
+
+    // Update display
+    document.getElementById('items-sold').textContent = itemsSold;
+    document.getElementById('revenue').textContent = `Rp ${revenue.toLocaleString('id-ID')}`;
+    document.getElementById('cost').textContent = `Rp ${cost.toLocaleString('id-ID')}`;
+    document.getElementById('profit-amount').textContent = `Rp ${profit.toLocaleString('id-ID')}`;
+    document.getElementById('profit-margin').textContent = `${margin.toFixed(2)}%`;
+
+    // Update status
+    const statusElement = document.getElementById('profit-status');
+    if (itemsSold <= 0) {
+        statusElement.className = 'badge bg-secondary';
+        statusElement.textContent = 'Belum ada penjualan';
+    } else if (profit > 0) {
+        statusElement.className = 'badge bg-success';
+        statusElement.textContent = 'UNTUNG';
+    } else if (profit < 0) {
+        statusElement.className = 'badge bg-danger';
+        statusElement.textContent = 'RUGI';
+    } else {
+        statusElement.className = 'badge bg-warning';
+        statusElement.textContent = 'IMPAS';
+    }
+}
+
+// Add event listeners for all relevant fields
+const calculationFields = ['purchase_price', 'selling_price', 'initial_stock', 'current_stock', 'additional_stock'];
+calculationFields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.addEventListener('input', updateProfitCalculation);
+    }
+});
+
+// Initialize calculation on page load
+document.addEventListener('DOMContentLoaded', updateProfitCalculation);
+</script>
 {% endblock %}

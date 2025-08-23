@@ -139,13 +139,25 @@ class Product(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
+    category = db.Column(db.String(100))
+    brand = db.Column(db.String(100))
+    supplier = db.Column(db.String(255))
     barcode = db.Column(db.String(100), unique=True)
     qr_code = db.Column(db.String(100), unique=True)
     purchase_price = db.Column(db.Float, nullable=False, default=0)
     selling_price = db.Column(db.Float, nullable=False, default=0)
     initial_stock = db.Column(db.Integer, nullable=False, default=0)
     current_stock = db.Column(db.Integer, nullable=False, default=0)
+    minimum_stock = db.Column(db.Integer, nullable=False, default=5)
+    maximum_stock = db.Column(db.Integer, nullable=False, default=1000)
+    unit = db.Column(db.String(50), default='pcs')
+    weight = db.Column(db.Float, default=0)
+    dimensions = db.Column(db.String(100))
+    expiry_date = db.Column(db.Date)
     profit = db.Column(db.Float, nullable=False, default=0)
+    total_sold = db.Column(db.Integer, nullable=False, default=0)
+    total_revenue = db.Column(db.Float, nullable=False, default=0)
+    is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -155,14 +167,38 @@ class Product(db.Model):
     maintenance_costs = db.relationship('MaintenanceCost', backref='product', cascade='all, delete-orphan')
     inventory_items = db.relationship('InventoryItem', backref='product', cascade='all, delete-orphan')
     
-    def calculate_profit(self):
-        """Calculate profit based on purchase price, selling price, initial stock, and current stock"""
-        sold_quantity = self.initial_stock - self.current_stock
-        if sold_quantity > 0:
-            self.profit = (self.selling_price - self.purchase_price) * sold_quantity
+    def calculate_profit(self, additional_stock=0):
+        """Calculate profit based on purchase price, selling price, and items sold
+        Formula: BT = SA + Pembelian - SK
+        Profit = (HJ - HB) × BT
+        """
+        items_sold = self.initial_stock + additional_stock - self.current_stock
+        if items_sold > 0:
+            self.profit = (self.selling_price - self.purchase_price) * items_sold
         else:
             self.profit = 0
         return self.profit
+    
+    def get_items_sold(self, additional_stock=0):
+        """Get number of items sold using formula: BT = SA + Pembelian - SK"""
+        return self.initial_stock + additional_stock - self.current_stock
+    
+    def get_revenue(self, additional_stock=0):
+        """Get total revenue: R = HJ × BT"""
+        items_sold = self.get_items_sold(additional_stock)
+        return self.selling_price * items_sold if items_sold > 0 else 0
+    
+    def get_cost(self, additional_stock=0):
+        """Get total cost: C = HB × BT"""
+        items_sold = self.get_items_sold(additional_stock)
+        return self.purchase_price * items_sold if items_sold > 0 else 0
+    
+    def get_profit_margin(self, additional_stock=0):
+        """Get profit margin percentage: Margin = (Profit / Revenue) × 100%"""
+        revenue = self.get_revenue(additional_stock)
+        if revenue > 0:
+            return (self.profit / revenue) * 100
+        return 0
 
 class InventoryItem(db.Model):
     __tablename__ = 'inventory_items'
@@ -300,7 +336,12 @@ class ServiceItem(db.Model):
 # Utility functions
 def format_currency(amount):
     """Format amount as Indonesian Rupiah"""
-    return f"Rp {amount:,.0f}".replace(',', '.')
+    try:
+        if amount is None:
+            return "Rp 0"
+        return f"Rp {float(amount):,.0f}".replace(',', '.')
+    except (ValueError, TypeError):
+        return "Rp 0"
 
 def format_date_indonesian(date):
     """Format date in Indonesian"""
@@ -405,68 +446,113 @@ def cashier_access(f):
 
 # PDF Generation Functions
 def generate_receipt_pdf(transaction):
-    """Generate receipt PDF for transaction"""
+    """Generate receipt PDF for transaction - Real store receipt style"""
     if not REPORTLAB_AVAILABLE:
         return None
     
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    # Use smaller page size to mimic real thermal printer receipt
+    from reportlab.lib.pagesizes import A5
+    doc = SimpleDocTemplate(buffer, pagesize=(200, 800), topMargin=10, bottomMargin=10, leftMargin=10, rightMargin=10)
     styles = getSampleStyleSheet()
+    
+    # Create custom styles for receipt
+    receipt_style = ParagraphStyle(
+        'Receipt',
+        parent=styles['Normal'],
+        fontSize=8,
+        alignment=1,  # Center alignment
+        fontName='Courier'
+    )
+    
+    receipt_bold = ParagraphStyle(
+        'ReceiptBold',
+        parent=receipt_style,
+        fontName='Courier-Bold',
+        fontSize=9
+    )
+    
+    receipt_small = ParagraphStyle(
+        'ReceiptSmall',
+        parent=receipt_style,
+        fontSize=7
+    )
+    
     elements = []
     
-    # Business info
+    # Business header - Real store style
     business = BusinessSettings.query.first()
     if business:
-        elements.append(Paragraph(business.business_name, styles['Title']))
+        elements.append(Paragraph(business.business_name.upper(), receipt_bold))
         if business.address:
-            elements.append(Paragraph(business.address, styles['Normal']))
+            elements.append(Paragraph(business.address, receipt_small))
         if business.phone:
-            elements.append(Paragraph(f"Telp: {business.phone}", styles['Normal']))
+            elements.append(Paragraph(f"Telp: {business.phone}", receipt_small))
+        if business.website:
+            elements.append(Paragraph(business.website, receipt_small))
+    else:
+        elements.append(Paragraph("TOKO FAJARMANDIRI", receipt_bold))
+        elements.append(Paragraph("Jl. Contoh No. 123, Jakarta", receipt_small))
+        elements.append(Paragraph("Telp: 0812-3456-7890", receipt_small))
     
-    elements.append(Spacer(1, 12))
-    elements.append(Paragraph("STRUK BELANJA", styles['Heading1']))
-    elements.append(Spacer(1, 6))
+    # Separator line
+    elements.append(Paragraph("=" * 40, receipt_small))
     
-    # Transaction info
-    elements.append(Paragraph(f"No. Transaksi: {transaction.id}", styles['Normal']))
-    elements.append(Paragraph(f"Tanggal: {transaction.timestamp.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
-    elements.append(Paragraph(f"Kasir: {User.query.get(transaction.cashier_id).username if transaction.cashier_id else 'N/A'}", styles['Normal']))
-    elements.append(Spacer(1, 12))
+    # Transaction details
+    elements.append(Paragraph(f"STRUK BELANJA", receipt_bold))
+    elements.append(Paragraph("=" * 40, receipt_small))
     
-    # Items table
+    # Transaction info in real receipt format
+    elements.append(Paragraph(f"No.Ref   : {str(transaction.id).zfill(6)}", receipt_small))
+    elements.append(Paragraph(f"Tanggal  : {transaction.timestamp.strftime('%d/%m/%Y')}", receipt_small))
+    elements.append(Paragraph(f"Waktu    : {transaction.timestamp.strftime('%H:%M:%S')}", receipt_small))
+    cashier_name = User.query.get(transaction.cashier_id).username if transaction.cashier_id else 'KASIR01'
+    elements.append(Paragraph(f"Kasir    : {cashier_name.upper()}", receipt_small))
+    elements.append(Paragraph("-" * 40, receipt_small))
+    
+    # Items in thermal receipt format
     items = json.loads(transaction.items)
-    data = [['Item', 'Qty', 'Harga', 'Subtotal']]
     
-    for item in items:
-        data.append([
-            item['name'][:20],
-            str(item['quantity']),
-            format_currency(item['selling_price']),
-            format_currency(item['subtotal'])
-        ])
+    for i, item in enumerate(items, 1):
+        # Item name
+        item_name = item['name'][:25]  # Limit length for receipt
+        elements.append(Paragraph(f"{i:2d}. {item_name}", receipt_small))
+        
+        # Price details in one line
+        qty = item['quantity']
+        price = item['selling_price']
+        subtotal = item['subtotal']
+        
+        price_line = f"    {qty} x {format_currency(price).replace('Rp ', '')} = {format_currency(subtotal).replace('Rp ', '')}"
+        elements.append(Paragraph(price_line, receipt_small))
     
-    table = Table(data)
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
+    # Summary section
+    elements.append(Paragraph("-" * 40, receipt_small))
     
-    elements.append(table)
-    elements.append(Spacer(1, 12))
+    # Total in big font
+    total_line = f"TOTAL: {format_currency(transaction.total)}"
+    elements.append(Paragraph(total_line, receipt_bold))
     
-    # Totals
-    elements.append(Paragraph(f"Total: {format_currency(transaction.total)}", styles['Heading2']))
-    elements.append(Paragraph(f"Bayar: {format_currency(transaction.payment_amount)}", styles['Normal']))
-    elements.append(Paragraph(f"Kembali: {format_currency(transaction.change_amount)}", styles['Normal']))
+    # Payment details
+    elements.append(Paragraph(f"TUNAI: {format_currency(transaction.payment_amount)}", receipt_small))
+    elements.append(Paragraph(f"KEMBALI: {format_currency(transaction.change_amount)}", receipt_small))
     
-    elements.append(Spacer(1, 24))
-    elements.append(Paragraph("Terima kasih atas kunjungan Anda!", styles['Normal']))
+    elements.append(Paragraph("=" * 40, receipt_small))
+    
+    # Footer - Real store style
+    elements.append(Paragraph("*** TERIMA KASIH ***", receipt_bold))
+    elements.append(Paragraph("SELAMAT BERBELANJA KEMBALI", receipt_small))
+    elements.append(Paragraph("Barang yang sudah dibeli", receipt_small))
+    elements.append(Paragraph("tidak dapat dikembalikan", receipt_small))
+    elements.append(Paragraph("kecuali ada kesepakatan", receipt_small))
+    
+    # Business footer
+    if business and business.copyright_text:
+        elements.append(Paragraph("-" * 40, receipt_small))
+        elements.append(Paragraph(business.copyright_text, receipt_small))
+    
+    # Print timestamp
+    elements.append(Paragraph(f"Dicetak: {datetime.now().strftime('%d/%m/%Y %H:%M')}", receipt_small))
     
     doc.build(elements)
     buffer.seek(0)
@@ -482,12 +568,18 @@ def generate_savings_statement_pdf(saver):
     styles = getSampleStyleSheet()
     elements = []
     
-    # Business info
+    # Business info from settings
     business = BusinessSettings.query.first()
     if business:
         elements.append(Paragraph(business.business_name, styles['Title']))
         if business.address:
             elements.append(Paragraph(business.address, styles['Normal']))
+        if business.phone:
+            elements.append(Paragraph(f"Telp: {business.phone}", styles['Normal']))
+        if business.website:
+            elements.append(Paragraph(f"Website: {business.website}", styles['Normal']))
+    else:
+        elements.append(Paragraph("Business App by fajarmandiri.store", styles['Title']))
     
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("REKENING KORAN TABUNGAN", styles['Heading1']))
@@ -537,24 +629,201 @@ def generate_savings_statement_pdf(saver):
     buffer.seek(0)
     return buffer
 
-def generate_admin_report_pdf(start_date, end_date):
-    """Generate admin report PDF"""
+def generate_invoice_pdf(invoice):
+    """Generate professional invoice PDF - Real business invoice style"""
     if not REPORTLAB_AVAILABLE:
         return None
     
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch, leftMargin=0.5*inch, rightMargin=0.5*inch)
     styles = getSampleStyleSheet()
     elements = []
     
-    # Business info
+    # Professional header with company info
     business = BusinessSettings.query.first()
+    
+    # Create header table for professional layout
+    header_data = []
+    if business:
+        company_info = f"<font size=16><b>{business.business_name}</b></font><br/>"
+        if business.address:
+            company_info += f"{business.address}<br/>"
+        if business.phone:
+            company_info += f"Telp: {business.phone}<br/>"
+        if business.website:
+            company_info += f"Website: {business.website}"
+    else:
+        company_info = "<font size=16><b>PT. FAJARMANDIRI TEKNOLOGI</b></font><br/>Jl. Teknologi No. 123<br/>Telp: 021-1234567<br/>www.fajarmandiri.com"
+    
+    # Invoice title and number
+    invoice_info = f"<font size=24 color='blue'><b>INVOICE</b></font><br/><br/>" \
+                   f"<font size=12><b>No: {invoice.invoice_number}</b></font><br/>" \
+                   f"Tgl: {format_date_indonesian(invoice.issue_date)}<br/>" \
+                   f"Jatuh Tempo: {format_date_indonesian(invoice.due_date)}"
+    
+    header_data = [[company_info, invoice_info]]
+    header_table = Table(header_data, colWidths=[4*inch, 3*inch])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+    ]))
+    
+    elements.append(header_table)
+    elements.append(Spacer(1, 24))
+    
+    # Invoice details in two columns
+    invoice_data = [
+        ['Invoice Number:', invoice.invoice_number, 'Issue Date:', format_date_indonesian(invoice.issue_date)],
+        ['Service Date:', format_date_indonesian(invoice.service_date), 'Due Date:', format_date_indonesian(invoice.due_date)],
+        ['Status:', invoice.status.upper(), '', '']
+    ]
+    
+    invoice_table = Table(invoice_data, colWidths=[1.5*inch, 2*inch, 1.5*inch, 2*inch])
+    invoice_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    elements.append(invoice_table)
+    elements.append(Spacer(1, 24))
+    
+    # Client information
+    elements.append(Paragraph("BILL TO:", styles['Heading3']))
+    elements.append(Paragraph(invoice.client_name, styles['Normal']))
+    if invoice.client_address:
+        elements.append(Paragraph(invoice.client_address, styles['Normal']))
+    if invoice.client_phone:
+        elements.append(Paragraph(f"Phone: {invoice.client_phone}", styles['Normal']))
+    if invoice.client_email:
+        elements.append(Paragraph(f"Email: {invoice.client_email}", styles['Normal']))
+    
+    elements.append(Spacer(1, 24))
+    
+    # Service items table
+    service_data = [['Description', 'Quantity', 'Rate', 'Amount']]
+    
+    for item in invoice.service_items:
+        service_data.append([
+            item.description,
+            f"{item.quantity:,.2f}",
+            format_currency(item.rate),
+            format_currency(item.amount)
+        ])
+    
+    # Add subtotal row
+    service_data.append(['', '', 'Subtotal:', format_currency(invoice.subtotal)])
+    
+    # Add tax if applicable
+    if invoice.tax_rate > 0:
+        service_data.append(['', '', f'Tax ({invoice.tax_rate}%):', format_currency(invoice.tax_amount)])
+    
+    # Add total row
+    service_data.append(['', '', 'TOTAL:', format_currency(invoice.total)])
+    
+    service_table = Table(service_data, colWidths=[3.5*inch, 1*inch, 1.5*inch, 1.5*inch])
+    service_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -4), colors.beige),
+        ('FONTNAME', (0, -3), (-1, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightblue),
+        ('FONTSIZE', (0, -1), (-1, -1), 14),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    elements.append(service_table)
+    elements.append(Spacer(1, 24))
+    
+    # Notes
+    if invoice.notes:
+        elements.append(Paragraph("Notes:", styles['Heading3']))
+        elements.append(Paragraph(invoice.notes, styles['Normal']))
+        elements.append(Spacer(1, 12))
+    
+    # Payment terms
+    elements.append(Paragraph("Payment Terms:", styles['Heading3']))
+    elements.append(Paragraph("Payment is due within 30 days of invoice date.", styles['Normal']))
+    elements.append(Spacer(1, 24))
+    
+    # Footer
+    if business and business.copyright_text:
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.grey,
+            alignment=1  # Center
+        )
+        elements.append(Paragraph(business.copyright_text, footer_style))
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+def generate_admin_report_pdf(start_date, end_date):
+    """Generate admin report PDF - Professional business report style"""
+    if not REPORTLAB_AVAILABLE:
+        return None
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    styles = getSampleStyleSheet()
+    elements = []
+    
+    # Professional report header
+    business = BusinessSettings.query.first()
+    
+    # Report title with company branding
+    report_title = ParagraphStyle(
+        'ReportTitle',
+        parent=styles['Title'],
+        fontSize=20,
+        textColor=colors.darkblue,
+        alignment=1,  # Center
+        spaceAfter=12
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'Subtitle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=colors.grey,
+        alignment=1,
+        spaceAfter=6
+    )
+    
+    # Company header
     if business:
         elements.append(Paragraph(business.business_name, styles['Title']))
-        
+        if business.address:
+            elements.append(Paragraph(business.address, styles['Normal']))
+        if business.phone:
+            elements.append(Paragraph(f"Telp: {business.phone} | Website: {business.website or 'N/A'}", styles['Normal']))
+    else:
+        elements.append(Paragraph("PT. FAJARMANDIRI TEKNOLOGI", styles['Title']))
+        elements.append(Paragraph("Laporan Manajemen Bisnis", styles['Normal']))
+    
+    elements.append(Spacer(1, 20))
+    
+    # Report details with professional styling
+    elements.append(Paragraph("LAPORAN PENJUALAN & ANALISIS BISNIS", report_title))
+    elements.append(Paragraph(f"Periode: {start_date} sampai {end_date}", subtitle_style))
+    elements.append(Paragraph(f"Dibuat pada: {datetime.now().strftime('%d %B %Y, %H:%M')} WIB", subtitle_style))
+    
+    # Add divider line
     elements.append(Spacer(1, 12))
-    elements.append(Paragraph("LAPORAN BISNIS", styles['Heading1']))
-    elements.append(Paragraph(f"Periode: {start_date} - {end_date}", styles['Normal']))
+    line_style = ParagraphStyle('Line', parent=styles['Normal'], borderWidth=1, borderColor=colors.black)
+    elements.append(Paragraph("_" * 80, line_style))
     elements.append(Spacer(1, 12))
     
     # Revenue calculation
@@ -774,9 +1043,11 @@ def edit_product(product_id):
         product.selling_price = float(request.form.get('selling_price', 0))
         product.initial_stock = int(request.form.get('initial_stock', 0))
         product.current_stock = int(request.form.get('current_stock', 0))
+        additional_stock = int(request.form.get('additional_stock', 0))
         
-        # Recalculate profit
-        product.calculate_profit()
+        # Calculate profit using the formula: BT = SA + Pembelian - SK
+        items_sold = product.initial_stock + additional_stock - product.current_stock
+        product.profit = (product.selling_price - product.purchase_price) * items_sold if items_sold > 0 else 0
         product.updated_at = datetime.utcnow()
         
         db.session.commit()
@@ -795,11 +1066,57 @@ def add_product():
         if not product_id:
             product_id = generate_product_id()
         
+        # Basic information
         name = request.form.get('name')
         description = request.form.get('description')
-        purchase_price = float(request.form.get('purchase_price', 0))
-        selling_price = float(request.form.get('selling_price', 0))
-        initial_stock = int(request.form.get('initial_stock', 0))
+        category = request.form.get('category')
+        brand = request.form.get('brand')
+        supplier = request.form.get('supplier')
+        unit = request.form.get('unit', 'pcs')
+        weight = float(request.form.get('weight', 0))
+        dimensions = request.form.get('dimensions')
+        
+        # Pricing with error handling
+        try:
+            purchase_price = float(request.form.get('purchase_price', 0))
+        except (ValueError, TypeError):
+            purchase_price = 0.0
+            
+        try:
+            selling_price = float(request.form.get('selling_price', 0))
+        except (ValueError, TypeError):
+            selling_price = 0.0
+        
+        # Stock information with error handling
+        try:
+            initial_stock = int(request.form.get('initial_stock', 0))
+        except (ValueError, TypeError):
+            initial_stock = 0
+            
+        try:
+            current_stock = int(request.form.get('current_stock', initial_stock))
+        except (ValueError, TypeError):
+            current_stock = initial_stock
+            
+        try:
+            minimum_stock = int(request.form.get('minimum_stock', 5))
+        except (ValueError, TypeError):
+            minimum_stock = 5
+            
+        try:
+            maximum_stock = int(request.form.get('maximum_stock', 1000))
+        except (ValueError, TypeError):
+            maximum_stock = 1000
+            
+        try:
+            additional_stock = int(request.form.get('additional_stock', 0))
+        except (ValueError, TypeError):
+            additional_stock = 0
+        
+        # Expiry date
+        expiry_date = None
+        if request.form.get('expiry_date'):
+            expiry_date = datetime.strptime(request.form.get('expiry_date'), '%Y-%m-%d').date()
         
         if Product.query.get(product_id):
             flash('ID Produk sudah ada!', 'error')
@@ -809,25 +1126,39 @@ def add_product():
         barcode_data = generate_barcode_data(product_id)
         qr_data = generate_qr_data(product_id, name)
         
+        # Calculate profit using the formula: BT = SA + Pembelian - SK
+        items_sold = initial_stock + additional_stock - current_stock
+        profit = (selling_price - purchase_price) * items_sold if items_sold > 0 else 0
+        revenue = selling_price * items_sold if items_sold > 0 else 0
+        
         product = Product(
             id=product_id, 
             name=name, 
             description=description,
+            category=category,
+            brand=brand,
+            supplier=supplier,
+            unit=unit,
+            weight=weight,
+            dimensions=dimensions,
+            expiry_date=expiry_date,
             barcode=barcode_data,
             qr_code=qr_data,
             purchase_price=purchase_price,
             selling_price=selling_price,
             initial_stock=initial_stock,
-            current_stock=initial_stock
+            current_stock=current_stock,
+            minimum_stock=minimum_stock,
+            maximum_stock=maximum_stock,
+            profit=profit,
+            total_sold=items_sold,
+            total_revenue=revenue
         )
-        
-        # Calculate initial profit (0 since nothing sold yet)
-        product.calculate_profit()
         
         db.session.add(product)
         db.session.commit()
         
-        flash('Produk berhasil ditambahkan dengan barcode dan QR code!', 'success')
+        flash('Produk berhasil ditambahkan dengan informasi lengkap!', 'success')
         return redirect(url_for('products'))
     
     return render_template('products/add.html', generated_id=generate_product_id())
@@ -1063,42 +1394,84 @@ def savings_receipt(transaction_id):
     # If requesting PDF download
     if request.args.get('format') == 'pdf':
         if REPORTLAB_AVAILABLE:
-                # Create simplified receipt for savings transaction
+                # Create real bank-style savings receipt
                 buffer = io.BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=letter)
+                doc = SimpleDocTemplate(buffer, pagesize=(200, 600), topMargin=10, bottomMargin=10, leftMargin=10, rightMargin=10)
                 styles = getSampleStyleSheet()
+                
+                # ATM/Bank receipt styles
+                atm_style = ParagraphStyle(
+                    'ATM',
+                    parent=styles['Normal'],
+                    fontSize=8,
+                    alignment=1,  # Center
+                    fontName='Courier'
+                )
+                
+                atm_bold = ParagraphStyle(
+                    'ATMBold',
+                    parent=atm_style,
+                    fontName='Courier-Bold',
+                    fontSize=9
+                )
+                
+                atm_small = ParagraphStyle(
+                    'ATMSmall',
+                    parent=atm_style,
+                    fontSize=7
+                )
+                
                 elements = []
                 
-                # Business info
+                # Bank header
                 business = BusinessSettings.query.first()
-                if business:
-                    elements.append(Paragraph(business.business_name, styles['Title']))
-                    if business.address:
-                        elements.append(Paragraph(business.address, styles['Normal']))
+                bank_name = business.business_name if business else "BANK FAJARMANDIRI"
+                elements.append(Paragraph(bank_name.upper(), atm_bold))
+                elements.append(Paragraph("LAYANAN TABUNGAN", atm_style))
                 
-                elements.append(Spacer(1, 12))
-                elements.append(Paragraph("STRUK TABUNGAN", styles['Heading1']))
-                elements.append(Spacer(1, 6))
+                if business and business.address:
+                    elements.append(Paragraph(business.address, atm_small))
                 
-                # Transaction info
-                elements.append(Paragraph(f"No. Transaksi: {transaction.id}", styles['Normal']))
-                elements.append(Paragraph(f"Tanggal: {transaction.date.strftime('%d/%m/%Y')}", styles['Normal']))
-                elements.append(Paragraph(f"Waktu: {transaction.created_at.strftime('%H:%M:%S')}", styles['Normal']))
-                elements.append(Paragraph(f"Nama: {transaction.saver.name}", styles['Normal']))
+                elements.append(Paragraph("=" * 35, atm_small))
                 
-                transaction_type = 'Setoran' if transaction.type == 'deposit' else 'Penarikan'
-                elements.append(Paragraph(f"Jenis: {transaction_type}", styles['Normal']))
-                elements.append(Paragraph(f"Jumlah: {format_currency(transaction.amount)}", styles['Heading2']))
-                elements.append(Paragraph(f"Saldo Setelah: {format_currency(transaction.balance_after)}", styles['Normal']))
+                # Transaction details - Bank style
+                transaction_type = 'SETORAN' if transaction.type == 'deposit' else 'PENARIKAN'
+                elements.append(Paragraph(f"TRANSAKSI {transaction_type}", atm_bold))
+                elements.append(Paragraph("=" * 35, atm_small))
+                
+                # Account info
+                elements.append(Paragraph(f"NAMA     : {transaction.saver.name.upper()}", atm_small))
+                elements.append(Paragraph(f"NO.REF   : {str(transaction.id).zfill(8)}", atm_small))
+                elements.append(Paragraph(f"TANGGAL  : {transaction.date.strftime('%d/%m/%Y')}", atm_small))
+                elements.append(Paragraph(f"WAKTU    : {transaction.created_at.strftime('%H:%M:%S')}", atm_small))
+                
+                elements.append(Paragraph("-" * 35, atm_small))
+                
+                # Transaction amount
+                elements.append(Paragraph(f"NOMINAL  : {format_currency(transaction.amount)}", atm_style))
+                elements.append(Paragraph(f"SALDO    : {format_currency(transaction.balance_after)}", atm_bold))
                 
                 if transaction.description:
-                    elements.append(Paragraph(f"Keterangan: {transaction.description}", styles['Normal']))
+                    elements.append(Paragraph(f"KET      : {transaction.description[:25]}", atm_small))
                 
-                elements.append(Spacer(1, 24))
-                elements.append(Paragraph("Terima kasih atas kepercayaan Anda!", styles['Normal']))
+                elements.append(Paragraph("=" * 35, atm_small))
                 
-                if business and business.copyright_text:
-                    elements.append(Paragraph(business.copyright_text, styles['Normal']))
+                # Status
+                elements.append(Paragraph("TRANSAKSI BERHASIL", atm_bold))
+                elements.append(Paragraph("*** SIMPAN STRUK INI ***", atm_style))
+                elements.append(Paragraph("SEBAGAI BUKTI TRANSAKSI", atm_small))
+                
+                elements.append(Paragraph("-" * 35, atm_small))
+                
+                # Footer
+                elements.append(Paragraph("TERIMA KASIH", atm_style))
+                elements.append(Paragraph("TELAH MENABUNG", atm_small))
+                
+                if business and business.phone:
+                    elements.append(Paragraph(f"Info: {business.phone}", atm_small))
+                
+                # Print time
+                elements.append(Paragraph(f"Print: {datetime.now().strftime('%d/%m/%y %H:%M')}", atm_small))
                 
                 doc.build(elements)
                 buffer.seek(0)
@@ -1126,28 +1499,45 @@ def savings_receipt(transaction_id):
 @cashier_access
 def pos():
     """POS interface"""
-    items = InventoryItem.query.filter(InventoryItem.current_stock > 0).join(Product).all()
+    # Get products directly from Product table with stock > 0
+    products = Product.query.filter(Product.current_stock > 0, Product.is_active == True).all()
+    
+    # Convert to dict format for JSON serialization
+    items = []
+    for product in products:
+        items.append({
+            'id': product.id,
+            'name': product.name,
+            'barcode': product.barcode,
+            'qr_code': product.qr_code,
+            'selling_price': product.selling_price,
+            'current_stock': product.current_stock,
+            'unit': product.unit or 'pcs'
+        })
+    
     return render_template('pos/interface.html', items=items)
 
 @app.route('/pos/search')
 @login_required
 def pos_search():
-    """Search items for POS"""
+    """Search products for POS"""
     query = request.args.get('q', '').lower()
-    items = InventoryItem.query.join(Product).filter(
-        InventoryItem.current_stock > 0
+    products = Product.query.filter(
+        Product.current_stock > 0,
+        Product.is_active == True
     ).all()
     
     results = []
-    for item in items:
-        if (query in item.code.lower() or 
-            query in item.product.name.lower()):
+    for product in products:
+        if (query in product.id.lower() or 
+            query in product.name.lower() or
+            (product.barcode and query in product.barcode.lower())):
             results.append({
-                'id': item.id,
-                'code': item.code,
-                'name': item.product.name,
-                'selling_price': item.selling_price,
-                'current_stock': item.current_stock
+                'id': product.id,
+                'name': product.name,
+                'barcode': product.barcode,
+                'selling_price': product.selling_price,
+                'current_stock': product.current_stock
             })
     
     return jsonify(results)
@@ -1167,55 +1557,69 @@ def process_sale():
     total_amount = 0
     total_profit = 0
     
-    for cart_item in cart_items:
-        item_id = cart_item['id']
-        quantity = cart_item['quantity']
+    try:
+        for cart_item in cart_items:
+            product_id = cart_item['id']
+            quantity = cart_item['quantity']
+            
+            # Get product directly from Product table
+            product = Product.query.get(product_id)
+            if not product or product.current_stock < quantity:
+                return jsonify({'success': False, 'message': f'Stok tidak mencukupi untuk {product.name if product else "produk tidak ditemukan"}!'})
+            
+            subtotal = product.selling_price * quantity
+            profit = (product.selling_price - product.purchase_price) * quantity
+            
+            # Update product stock
+            product.current_stock -= quantity
+            
+            # Update product sales statistics
+            product.total_sold += quantity
+            product.total_revenue += subtotal
+            product.profit = product.calculate_profit()
+            
+            transaction_items.append({
+                'id': product.id,
+                'name': product.name,
+                'selling_price': product.selling_price,
+                'quantity': quantity,
+                'subtotal': subtotal
+            })
+            
+            total_amount += subtotal
+            total_profit += profit
         
-        item = InventoryItem.query.get(item_id)
-        if not item or item.current_stock < quantity:
-            return jsonify({'success': False, 'message': f'Stok tidak mencukupi untuk {item.product.name if item else "item tidak ditemukan"}!'})
+        if payment_amount < total_amount:
+            return jsonify({'success': False, 'message': 'Jumlah pembayaran kurang!'})
         
-        subtotal = item.selling_price * quantity
-        profit = (item.selling_price - item.purchase_price) * quantity
+        change = payment_amount - total_amount
         
-        # Update stock
-        item.current_stock -= quantity
+        # Save transaction
+        transaction = CashierTransaction(
+            timestamp=datetime.now(),
+            items=json.dumps(transaction_items),
+            total=total_amount,
+            profit=total_profit,
+            payment_amount=payment_amount,
+            change_amount=change,
+            cashier_id=session['user_id']
+        )
         
-        transaction_items.append({
-            'code': item.code,
-            'name': item.product.name,
-            'selling_price': item.selling_price,
-            'quantity': quantity,
-            'subtotal': subtotal
+        db.session.add(transaction)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Transaksi berhasil!',
+            'transaction_id': transaction.id,
+            'total': total_amount,
+            'payment_amount': payment_amount,
+            'change': change
         })
         
-        total_amount += subtotal
-        total_profit += profit
-    
-    change = payment_amount - total_amount if payment_amount >= total_amount else 0
-    
-    # Save transaction
-    transaction = CashierTransaction(
-        timestamp=datetime.now(),
-        items=json.dumps(transaction_items),
-        total=total_amount,
-        profit=total_profit,
-        payment_amount=payment_amount,
-        change_amount=change,
-        cashier_id=session['user_id']
-    )
-    
-    db.session.add(transaction)
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Transaksi berhasil!',
-        'transaction_id': transaction.id,
-        'total': total_amount,
-        'payment_amount': payment_amount,
-        'change': change
-    })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
 @app.route('/pos/receipt/<int:transaction_id>')
 @login_required
@@ -1243,6 +1647,25 @@ def invoices():
     """Invoice list"""
     invoices = Invoice.query.order_by(Invoice.created_at.desc()).all()
     return render_template('invoices/list.html', invoices=invoices, format_currency=format_currency)
+
+@app.route('/invoices/<int:invoice_id>/pdf')
+@login_required
+def download_invoice_pdf(invoice_id):
+    """Download invoice as PDF"""
+    invoice = Invoice.query.get_or_404(invoice_id)
+    
+    if REPORTLAB_AVAILABLE:
+        pdf_buffer = generate_invoice_pdf(invoice)
+        if pdf_buffer:
+            return send_file(
+                pdf_buffer,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=f'invoice_{invoice.invoice_number}_{datetime.now().strftime("%Y%m%d")}.pdf'
+            )
+    
+    flash('PDF generation tidak tersedia!', 'error')
+    return redirect(url_for('invoices'))
 
 @app.route('/invoices/create', methods=['GET', 'POST'])
 @login_required
@@ -1572,6 +1995,62 @@ def print_product_codes(product_id):
     product = Product.query.get_or_404(product_id)
     return render_template('products/print_codes.html', product=product)
 
+@app.route('/products/<product_id>/toggle')
+@manager_required
+def toggle_product(product_id):
+    """Toggle product active status"""
+    product = Product.query.get_or_404(product_id)
+    product.is_active = not product.is_active
+    db.session.commit()
+    
+    status = "diaktifkan" if product.is_active else "dinonaktifkan"
+    flash(f'Produk {product.name} berhasil {status}!', 'success')
+    return redirect(url_for('products'))
+
+@app.route('/products/<product_id>/delete')
+@admin_required
+def delete_product(product_id):
+    """Delete product"""
+    product = Product.query.get_or_404(product_id)
+    product_name = product.name
+    
+    # Check if product has inventory items
+    if product.inventory_items:
+        flash(f'Tidak dapat menghapus produk {product_name} karena masih memiliki item inventory!', 'error')
+        return redirect(url_for('products'))
+    
+    db.session.delete(product)
+    db.session.commit()
+    
+    flash(f'Produk {product_name} berhasil dihapus!', 'success')
+    return redirect(url_for('products'))
+
+@app.route('/api/product/<product_id>')
+@login_required
+def api_product_detail(product_id):
+    """API endpoint for product details"""
+    product = Product.query.get_or_404(product_id)
+    return jsonify({
+        'success': True,
+        'product': {
+            'id': product.id,
+            'name': product.name,
+            'description': product.description,
+            'category': product.category,
+            'brand': product.brand,
+            'unit': product.unit,
+            'purchase_price': product.purchase_price,
+            'selling_price': product.selling_price,
+            'current_stock': product.current_stock,
+            'minimum_stock': product.minimum_stock,
+            'maximum_stock': product.maximum_stock,
+            'profit': product.profit,
+            'total_sold': product.total_sold,
+            'total_revenue': product.total_revenue,
+            'is_active': product.is_active
+        }
+    })
+
 @app.route('/api/saver_balance/<saver_name>')
 @login_required
 def get_saver_balance(saver_name):
@@ -1600,34 +2079,99 @@ def currency_filter(amount):
 def indonesian_date_filter(date):
     return format_date_indonesian(date)
 
+# Add template globals
+@app.template_global()
+def format_currency_global(amount):
+    return format_currency(amount)
+
+# Register template context processor for common functions
+@app.context_processor
+def inject_common_functions():
+    return {
+        'format_currency': format_currency,
+        'datetime': datetime,
+        'timedelta': timedelta
+    }
+
 # Initialize database
 def init_database():
     """Initialize database and create admin user"""
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            
+            # Migrate existing data if needed
+            migrate_existing_products()
+            
+            # Create default admin user if not exists
+            admin = User.query.filter_by(username='admin').first()
+            if not admin:
+                admin = User(username='admin', email='admin@fajarmandiri.store', role='admin')
+                admin.set_password('admin123')
+                db.session.add(admin)
+                db.session.commit()
+                print("Default admin user created: admin/admin123")
+            
+            # Create default business settings
+            business = BusinessSettings.query.first()
+            if not business:
+                business = BusinessSettings(
+                    business_name='Business App by fajarmandiri.store',
+                    address='Jl. Contoh No. 123, Jakarta',
+                    phone='0812-3456-7890',
+                    website='fajarmandiri.store',
+                    copyright_text='© 2025 Fajar Julyana - fajarmandiri.store'
+                )
+                db.session.add(business)
+                db.session.commit()
+                print("Default business settings created")
+        except Exception as e:
+            print(f"Database initialization error: {e}")
+            # Run manual migration
+            try:
+                from migrate_database import migrate_database
+                migrate_database()
+                print("Manual migration completed")
+            except Exception as migration_error:
+                print(f"Migration error: {migration_error}")
+
+def migrate_existing_products():
+    """Migrate existing products to have new fields"""
+    try:
+        # Check if we need to add default values for new columns
+        products = Product.query.all()
+        needs_commit = False
         
-        # Create default admin user if not exists
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            admin = User(username='admin', email='admin@fajarmandiri.store', role='admin')
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("Default admin user created: admin/admin123")
+        for product in products:
+            if not product.category:
+                product.category = 'Lainnya'
+                needs_commit = True
+            if not product.minimum_stock:
+                product.minimum_stock = 5
+                needs_commit = True
+            if not product.maximum_stock:
+                product.maximum_stock = 1000
+                needs_commit = True
+            if not product.unit:
+                product.unit = 'pcs'
+                needs_commit = True
+            if product.is_active is None:
+                product.is_active = True
+                needs_commit = True
+            if not product.total_sold:
+                items_sold = max(0, product.initial_stock - product.current_stock)
+                product.total_sold = items_sold
+                needs_commit = True
+            if not product.total_revenue:
+                product.total_revenue = product.selling_price * product.total_sold if product.total_sold else 0
+                needs_commit = True
         
-        # Create default business settings
-        business = BusinessSettings.query.first()
-        if not business:
-            business = BusinessSettings(
-                business_name='Business App by fajarmandiri.store',
-                address='Jl. Contoh No. 123, Jakarta',
-                phone='0812-3456-7890',
-                website='fajarmandiri.store',
-                copyright_text='© 2025 Fajar Julyana - fajarmandiri.store'
-            )
-            db.session.add(business)
+        if needs_commit:
             db.session.commit()
-            print("Default business settings created")
+            print("Existing products migrated successfully")
+    except Exception as e:
+        print(f"Migration note: {e}")
+        # Continue if no existing products or already migrated
 
 if __name__ == '__main__':
     init_database()
