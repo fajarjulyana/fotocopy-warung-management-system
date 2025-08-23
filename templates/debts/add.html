@@ -1,0 +1,127 @@
+
+{% extends "base.html" %}
+
+{% block title %}Tambah Hutang Pelanggan{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-plus me-2"></i>
+        Tambah Hutang Pelanggan
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Informasi Hutang
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customer_name" class="form-label">Nama Pelanggan</label>
+                                <input type="text" class="form-control" id="customer_name" name="customer_name" required list="customer_list">
+                                <datalist id="customer_list">
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.name }}">
+                                    {% endfor %}
+                                </datalist>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customer_phone" class="form-label">Nomor Telepon</label>
+                                <input type="text" class="form-control" id="customer_phone" name="customer_phone">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customer_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="customer_email" name="customer_email">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="invoice_number" class="form-label">Nomor Invoice (Opsional)</label>
+                                <input type="text" class="form-control" id="invoice_number" name="invoice_number">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="customer_address" class="form-label">Alamat</label>
+                        <textarea class="form-control" id="customer_address" name="customer_address" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Deskripsi Hutang</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" required placeholder="Contoh: Pembelian barang, Service, dll"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="total_amount" class="form-label">Total Hutang</label>
+                                <input type="number" class="form-control" id="total_amount" name="total_amount" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="due_date" class="form-label">Jatuh Tempo (Opsional)</label>
+                                <input type="date" class="form-control" id="due_date" name="due_date">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('customer_debts') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            Kembali
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            Simpan Hutang
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Panduan
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="small text-muted">
+                    <li>Masukkan nama pelanggan, jika sudah ada akan otomatis terdeteksi</li>
+                    <li>Isi deskripsi yang jelas untuk memudahkan tracking</li>
+                    <li>Tentukan jatuh tempo untuk pengingat</li>
+                    <li>Sistem akan otomatis menandai hutang yang terlambat</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-fill customer data when name is selected
+document.getElementById('customer_name').addEventListener('input', function() {
+    const customerName = this.value;
+    // You can add AJAX call here to auto-fill customer data
+});
+</script>
+{% endblock %}

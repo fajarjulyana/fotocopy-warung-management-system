@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Business Header -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="text-primary mb-1">{{ business.business_name }}</h2>
+                {% if business.address %}
+                <p class="text-muted mb-1">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    {{ business.address }}
+                </p>
+                {% endif %}
+                <div class="row">
+                    {% if business.phone %}
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <i class="fas fa-phone me-1"></i>
+                            {{ business.phone }}
+                        </small>
+                    </div>
+                    {% endif %}
+                    {% if business.website %}
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <i class="fas fa-globe me-1"></i>
+                            {{ business.website }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="badge bg-primary fs-6">{{ user.role.title() if user else 'Unknown' }}</div>
+                <p class="small text-muted mt-2 mb-0">{{ business.copyright_text }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-box fa-2x text-primary mb-2"></i>
+                <h3 class="text-primary">{{ stats.total_products }}</h3>
+                <p class="text-muted mb-0">Total Produk</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-warehouse fa-2x text-success mb-2"></i>
+                <h3 class="text-success">{{ stats.total_inventory_items }}</h3>
+                <p class="text-muted mb-0">Item Inventory</p>
+                {% if stats.low_stock_items > 0 %}
+                <small class="text-warning">{{ stats.low_stock_items or 0 }} stok rendah</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-piggy-bank fa-2x text-warning mb-2"></i>
+                <h3 class="text-warning">{{ format_currency(stats.total_savings|default(0)) }}</h3>
+                <p class="text-muted mb-0">Penabung</p>
+                <small class="text-muted">{{ format_currency(stats.total_savings|default(0)) }}</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-file-invoice fa-2x text-info mb-2"></i>
+                <h3 class="text-info">{{ stats.total_invoices }}</h3>
+                <p class="text-muted mb-0">Total Invoice</p>
+                {% if stats.pending_invoices > 0 %}
+                <small class="text-warning">{{ stats.pending_invoices }} pending</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Statistics Row -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-secondary mb-2"></i>
+                <h3 class="text-secondary">{{ stats.total_customers }}</h3>
+                <p class="text-muted mb-0">Total Pelanggan</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-credit-card fa-2x text-danger mb-2"></i>
+                <h3 class="text-danger">{{ format_currency(stats.total_debts|default(0)) }}</h3>
+                <p class="text-muted mb-0">Total Hutang</p>
+                {% if stats.overdue_debts > 0 %}
+                <small class="text-danger">{{ stats.overdue_debts }} terlambat</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                <h3 class="text-success">{{ format_currency(stats.today_revenue|default(0)) }}</h3>
+                <p class="text-muted mb-0">Penjualan Hari Ini</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <i class="fas fa-cash-register fa-2x text-primary mb-2"></i>
+                <h3 class="text-primary">{{ stats.total_transactions }}</h3>
+                <p class="text-muted mb-0">Total Transaksi</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>
+                    Aksi Cepat
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% if user.role in ['admin', 'manager'] %}
+                    <div class="col-6">
+                        <a href="{{ url_for('add_product') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-1"></i>
+                            Tambah Produk
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('add_inventory_item') }}" class="btn btn-success w-100">
+                            <i class="fas fa-box-open me-1"></i>
+                            Tambah Item
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-6">
+                        <a href="{{ url_for('savings_deposit') }}" class="btn btn-warning w-100">
+                            <i class="fas fa-coins me-1"></i>
+                            Setor Tabungan
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('create_invoice') }}" class="btn btn-info w-100">
+                            <i class="fas fa-file-invoice me-1"></i>
+                            Buat Invoice
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('add_customer_debt') }}" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-plus me-1"></i>
+                            Tambah Hutang
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('customer_debts') }}" class="btn btn-warning w-100">
+                            <i class="fas fa-credit-card me-1"></i>
+                            Kelola Hutang
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('pos') }}" class="btn btn-success w-100">
+                            <i class="fas fa-cash-register me-1"></i>
+                            Buka POS
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Transaksi Hari Ini
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="text-success">{{ format_currency(stats.today_revenue|default(0)) }}</h3>
+                <p class="text-muted mb-2">Total Penjualan</p>
+                <small class="text-muted">{{ stats.total_transactions }} total transaksi</small>
+                <div class="mt-3">
+                    <a href="{{ url_for('pos') }}" class="btn btn-success">
+                        <i class="fas fa-cash-register me-1"></i>
+                        Buka POS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Section -->
+{% if user.role == 'admin' %}
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="card bg-secondary text-white h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users"></i> Manajemen User
+                    </h5>
+                </div>
+                <p class="card-text">Kelola user dan pengaturan sistem</p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-cog"></i> Pengaturan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3 mb-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar"></i> Laporan Bisnis
+                    </h5>
+                </div>
+                <p class="card-text">Analisa pendapatan, kerugian & item terlaris</p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('admin_reports') }}" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-file-pdf"></i> Lihat Laporan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<!-- Recent Activity -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-clock me-2"></i>
+            Aktivitas Terbaru
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h6 class="text-primary">Produk Terbaru</h6>
+                <div class="list-group list-group-flush">
+                    <!-- Add recent products here if needed -->
+                    <div class="list-group-item bg-transparent border-0 px-0">
+                        <small class="text-muted">Belum ada data terbaru</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <h6 class="text-success">Transaksi Terbaru</h6>
+                <div class="list-group list-group-flush">
+                    <!-- Add recent transactions here if needed -->
+                    <div class="list-group-item bg-transparent border-0 px-0">
+                        <small class="text-muted">Belum ada data terbaru</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <h6 class="text-warning">Notifikasi</h6>
+                <div class="list-group list-group-flush">
+                    {% if stats.overdue_debts > 0 %}
+                    <div class="list-group-item bg-transparent border-0 px-0">
+                        <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                        <small>{{ stats.overdue_debts }} hutang terlambat</small>
+                    </div>
+                    {% endif %}
+
+                    {% if stats.low_stock_items > 0 %}
+                    <div class="list-group-item bg-transparent border-0 px-0">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        <small>{{ stats.low_stock_items or 0 }} item stok rendah</small>
+                    </div>
+                    {% endif %}
+
+                    {% if stats.pending_invoices > 0 %}
+                    <div class="list-group-item bg-transparent border-0 px-0">
+                        <i class="fas fa-file-invoice text-info me-2"></i>
+                        <small>{{ stats.pending_invoices }} invoice pending</small>
+                    </div>
+                    {% endif %}
+
+                    {% if stats.low_stock_items == 0 and stats.pending_invoices == 0 and stats.overdue_debts == 0 %}
+                    <div class="list-group-item bg-transparent border-0 px-0">
+                        <small class="text-muted">Tidak ada notifikasi</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

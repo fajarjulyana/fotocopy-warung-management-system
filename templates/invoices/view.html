@@ -1,0 +1,199 @@
+
+{% extends "base.html" %}
+
+{% block title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-file-invoice me-2"></i>
+        Invoice {{ invoice.invoice_number }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('edit_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-2"></i>
+                Edit
+            </a>
+            <a href="{{ url_for('print_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-success" target="_blank">
+                <i class="fas fa-print me-2"></i>
+                Print PDF
+            </a>
+        </div>
+        <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>
+            Kembali
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <!-- Invoice Header -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h3>{{ business.business_name if business else 'FAJAR MANDIRI FOTOCOPY' }}</h3>
+                        <p class="text-muted mb-1">
+                            {{ business.address if business else 'KP Jl. Pasir Wangi, RT.01/RW.11, Gudangkahuripan' }}<br>
+                            {{ 'Kec. Lembang, Kab. Bandung Barat, Jawa Barat 40391' }}<br>
+                            Telp: {{ business.phone if business else '(+62) 81804411937' }}
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <h2 class="text-primary">INVOICE</h2>
+                        <p class="mb-1"><strong>No: {{ invoice.invoice_number }}</strong></p>
+                        <p class="mb-0">Tanggal: {{ invoice.issue_date.strftime('%d/%m/%Y') if invoice.issue_date else '-' }}</p>
+                    </div>
+                </div>
+
+                <!-- Bill To & Invoice Details -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>BILL TO:</h5>
+                        <p class="mb-1"><strong>{{ invoice.client_name }}</strong></p>
+                        {% if invoice.client_address %}
+                        <p class="mb-1">{{ invoice.client_address }}</p>
+                        {% endif %}
+                        {% if invoice.client_phone %}
+                        <p class="mb-1">Phone: {{ invoice.client_phone }}</p>
+                        {% endif %}
+                        {% if invoice.client_email %}
+                        <p class="mb-0">Email: {{ invoice.client_email }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Service Date:</strong></td>
+                                <td>{{ invoice.service_date.strftime('%d/%m/%Y') if invoice.service_date else '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Due Date:</strong></td>
+                                <td>{{ invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td>
+                                    {% if invoice.status == 'paid' %}
+                                        <span class="badge badge-success">Lunas</span>
+                                    {% elif invoice.status == 'sent' %}
+                                        <span class="badge badge-info">Terkirim</span>
+                                    {% elif invoice.status == 'overdue' %}
+                                        <span class="badge badge-danger">Overdue</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Draft</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Service Items -->
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-center">Quantity</th>
+                                <th class="text-end">Rate</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in invoice.service_items %}
+                            <tr>
+                                <td>{{ item.description }}</td>
+                                <td class="text-center">{{ '{:,.2f}'.format(item.quantity) }}</td>
+                                <td class="text-end">{{ format_currency(item.rate) }}</td>
+                                <td class="text-end">{{ format_currency(item.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                <td class="text-end"><strong>{{ format_currency(invoice.subtotal or 0) }}</strong></td>
+                            </tr>
+                            {% if invoice.tax_rate > 0 %}
+                            <tr>
+                                <td colspan="3" class="text-end">Tax ({{ invoice.tax_rate }}%):</td>
+                                <td class="text-end">{{ format_currency(invoice.tax_amount or 0) }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr class="table-primary">
+                                <td colspan="3" class="text-end"><strong>TOTAL:</strong></td>
+                                <td class="text-end"><strong>{{ format_currency(invoice.total or 0) }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Warranty Information -->
+                {% if invoice.warranty_period and invoice.warranty_period > 0 %}
+                <div class="mb-4">
+                    <h5>Informasi Garansi:</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Periode Garansi:</strong> {{ invoice.warranty_period }} hari</p>
+                            {% if invoice.warranty_start_date %}
+                            <p><strong>Mulai:</strong> {{ invoice.warranty_start_date.strftime('%d/%m/%Y') }}</p>
+                            {% endif %}
+                            {% if invoice.warranty_end_date %}
+                            <p><strong>Berakhir:</strong> {{ invoice.warranty_end_date.strftime('%d/%m/%Y') }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status Garansi:</strong> 
+                                {% if invoice.warranty_end_date %}
+                                    {% if invoice.is_warranty_active %}
+                                        <span class="badge badge-success">Aktif</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Berakhir</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-secondary">Tidak Ada</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% if invoice.warranty_terms %}
+                    <div class="mt-3">
+                        <strong>Syarat & Ketentuan:</strong>
+                        <p class="text-muted">{{ invoice.warranty_terms }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Notes -->
+                {% if invoice.notes %}
+                <div class="mb-4">
+                    <h5>Notes:</h5>
+                    <p>{{ invoice.notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Invoice Summary
+                </h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Invoice Number:</strong><br>{{ invoice.invoice_number }}</p>
+                <p><strong>Total Amount:</strong><br>{{ format_currency(invoice.total or 0) }}</p>
+                <p><strong>Created:</strong><br>{{ invoice.created_at.strftime('%d/%m/%Y %H:%M') if invoice.created_at else '-' }}</p>
+                <p><strong>Last Updated:</strong><br>{{ invoice.updated_at.strftime('%d/%m/%Y %H:%M') if invoice.updated_at else '-' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

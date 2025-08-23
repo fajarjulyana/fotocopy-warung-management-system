@@ -1,0 +1,389 @@
+
+{% extends "base.html" %}
+
+{% block title %}Edit Invoice{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-edit me-2"></i>
+        Edit Invoice {{ invoice.invoice_number }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>
+            Kembali
+        </a>
+    </div>
+</div>
+
+<form method="POST" id="invoiceEditForm">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Client Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Informasi Client
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_name" class="form-label">Nama Client *</label>
+                                <input type="text" class="form-control" name="client_name" id="client_name" value="{{ invoice.client_name }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" name="client_email" id="client_email" value="{{ invoice.client_email or '' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_phone" class="form-label">Telefon</label>
+                                <input type="text" class="form-control" name="client_phone" id="client_phone" value="{{ invoice.client_phone or '' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_address" class="form-label">Alamat</label>
+                                <textarea class="form-control" name="client_address" id="client_address" rows="2">{{ invoice.client_address or '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar me-2"></i>
+                        Detail Invoice
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="service_date" class="form-label">Tanggal Service *</label>
+                                <input type="date" class="form-control" name="service_date" id="service_date" value="{{ invoice.service_date.strftime('%Y-%m-%d') if invoice.service_date else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="issue_date" class="form-label">Tanggal Terbit *</label>
+                                <input type="date" class="form-control" name="issue_date" id="issue_date" value="{{ invoice.issue_date.strftime('%Y-%m-%d') if invoice.issue_date else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="due_date" class="form-label">Jatuh Tempo *</label>
+                                <input type="date" class="form-control" name="due_date" id="due_date" value="{{ invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else '' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-control" name="status" id="status">
+                                    <option value="draft" {% if invoice.status == 'draft' %}selected{% endif %}>Draft</option>
+                                    <option value="sent" {% if invoice.status == 'sent' %}selected{% endif %}>Terkirim</option>
+                                    <option value="paid" {% if invoice.status == 'paid' %}selected{% endif %}>Lunas</option>
+                                    <option value="overdue" {% if invoice.status == 'overdue' %}selected{% endif %}>Overdue</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warranty Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Informasi Garansi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="warranty_period" class="form-label">Periode Garansi (Hari)</label>
+                                <input type="number" class="form-control" name="warranty_period" id="warranty_period" value="{{ invoice.warranty_period or 0 }}" min="0" onchange="calculateWarrantyEndDate()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="warranty_start_date" class="form-label">Mulai Garansi</label>
+                                <input type="date" class="form-control" name="warranty_start_date" id="warranty_start_date" value="{{ invoice.warranty_start_date.strftime('%Y-%m-%d') if invoice.warranty_start_date else '' }}" onchange="calculateWarrantyEndDate()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="warranty_end_date" class="form-label">Berakhir Garansi</label>
+                                <input type="date" class="form-control" id="warranty_end_date" value="{{ invoice.warranty_end_date.strftime('%Y-%m-%d') if invoice.warranty_end_date else '' }}" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Status Garansi</label>
+                                <div class="form-control-plaintext">
+                                    {% if invoice.warranty_end_date %}
+                                        {% if invoice.is_warranty_active %}
+                                            <span class="badge badge-success">Aktif</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Berakhir</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge badge-secondary">Tidak Ada</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="warranty_terms" class="form-label">Syarat & Ketentuan Garansi</label>
+                                <textarea class="form-control" name="warranty_terms" id="warranty_terms" rows="3" placeholder="Masukkan syarat dan ketentuan garansi...">{{ invoice.warranty_terms or '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Items -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Item Service
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addServiceItem()">
+                        <i class="fas fa-plus me-1"></i>
+                        Tambah Item
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="serviceItems">
+                        {% for item in invoice.service_items %}
+                        <div class="row mb-3 service-item" id="item{{ loop.index }}">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" placeholder="Deskripsi service" value="{{ item.description }}" required onchange="updateItemData({{ loop.index }})">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" class="form-control" placeholder="Qty" min="1" value="{{ item.quantity }}" required onchange="updateItemData({{ loop.index }})">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" class="form-control" placeholder="Rate/Harga" min="0" step="0.01" value="{{ item.rate }}" required onchange="updateItemData({{ loop.index }})">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="text" class="form-control" placeholder="Total" value="Rp {{ '{:,.0f}'.format(item.amount).replace(',', '.') }}" readonly>
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-sm btn-danger" onclick="removeServiceItem({{ loop.index }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" name="items" value='{"description":"{{ item.description }}","quantity":{{ item.quantity }},"rate":{{ item.rate }},"amount":{{ item.amount }}}'>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-8"></div>
+                        <div class="col-md-4">
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Subtotal:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <span id="subtotalDisplay">{{ format_currency(invoice.subtotal or 0) }}</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label for="tax_rate">Pajak (%):</label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" class="form-control form-control-sm" name="tax_rate" id="tax_rate" value="{{ invoice.tax_rate or 0 }}" min="0" max="100" onchange="calculateTotal()">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Total:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong><span id="totalDisplay">{{ format_currency(invoice.total or 0) }}</span></strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>
+                        Catatan
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control" name="notes" id="notes" rows="3" placeholder="Catatan tambahan untuk invoice...">{{ invoice.notes or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('invoices') }}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>
+                    Batal
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>
+                    Update Invoice
+                </button>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Status Invoice
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>No. Invoice:</strong> {{ invoice.invoice_number }}</p>
+                    <p><strong>Status:</strong> 
+                        {% if invoice.status == 'paid' %}
+                            <span class="badge badge-success">Lunas</span>
+                        {% elif invoice.status == 'sent' %}
+                            <span class="badge badge-info">Terkirim</span>
+                        {% elif invoice.status == 'overdue' %}
+                            <span class="badge badge-danger">Overdue</span>
+                        {% else %}
+                            <span class="badge badge-warning">Draft</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Total:</strong> {{ format_currency(invoice.total or 0) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+let itemCount = {{ invoice.service_items|length }};
+
+function addServiceItem() {
+    itemCount++;
+    const itemsContainer = document.getElementById('serviceItems');
+    const itemHtml = `
+        <div class="row mb-3 service-item" id="item${itemCount}">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Deskripsi service" required onchange="updateItemData(${itemCount})">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" placeholder="Qty" min="1" value="1" required onchange="updateItemData(${itemCount})">
+            </div>
+            <div class="col-md-3">
+                <input type="number" class="form-control" placeholder="Rate/Harga" min="0" step="0.01" required onchange="updateItemData(${itemCount})">
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control" placeholder="Total" readonly>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeServiceItem(${itemCount})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    itemsContainer.insertAdjacentHTML('beforeend', itemHtml);
+}
+
+function removeServiceItem(itemId) {
+    document.getElementById(`item${itemId}`).remove();
+    calculateTotal();
+}
+
+function updateItemData(itemId) {
+    const item = document.getElementById(`item${itemId}`);
+    const inputs = item.querySelectorAll('input');
+    const qty = parseFloat(inputs[1].value) || 0;
+    const rate = parseFloat(inputs[2].value) || 0;
+    const amount = qty * rate;
+    
+    inputs[3].value = `Rp ${amount.toLocaleString('id-ID')}`;
+    
+    // Create hidden input for form submission
+    const description = inputs[0].value;
+    const itemData = {
+        description: description,
+        quantity: qty,
+        rate: rate,
+        amount: amount
+    };
+    
+    // Remove existing hidden input
+    const existingInput = item.querySelector('input[name="items"]');
+    if (existingInput) {
+        existingInput.remove();
+    }
+    
+    // Add new hidden input
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'items';
+    hiddenInput.value = JSON.stringify(itemData);
+    item.appendChild(hiddenInput);
+    
+    calculateTotal();
+}
+
+function calculateTotal() {
+    let subtotal = 0;
+    document.querySelectorAll('.service-item').forEach(item => {
+        const inputs = item.querySelectorAll('input');
+        const qty = parseFloat(inputs[1].value) || 0;
+        const rate = parseFloat(inputs[2].value) || 0;
+        subtotal += qty * rate;
+    });
+    
+    const taxRate = parseFloat(document.getElementById('tax_rate').value) || 0;
+    const taxAmount = subtotal * (taxRate / 100);
+    const total = subtotal + taxAmount;
+    
+    document.getElementById('subtotalDisplay').textContent = `Rp ${subtotal.toLocaleString('id-ID')}`;
+    document.getElementById('totalDisplay').textContent = `Rp ${total.toLocaleString('id-ID')}`;
+}
+
+function calculateWarrantyEndDate() {
+    const startDate = document.getElementById('warranty_start_date').value;
+    const period = parseInt(document.getElementById('warranty_period').value) || 0;
+    
+    if (startDate && period > 0) {
+        const start = new Date(startDate);
+        const end = new Date(start.getTime() + (period * 24 * 60 * 60 * 1000));
+        document.getElementById('warranty_end_date').value = end.toISOString().split('T')[0];
+    } else {
+        document.getElementById('warranty_end_date').value = '';
+    }
+}
+
+// Initialize calculations
+document.addEventListener('DOMContentLoaded', function() {
+    calculateTotal();
+    calculateWarrantyEndDate();
+});
+</script>
+{% endblock %}
