@@ -1,0 +1,290 @@
+
+{% extends "base.html" %}
+
+{% block title %}Buat Invoice Baru{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-plus me-2"></i>
+        Buat Invoice Baru
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('invoices') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>
+            Kembali
+        </a>
+    </div>
+</div>
+
+<form method="POST" id="invoiceForm">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Client Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Informasi Client
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_name" class="form-label">Nama Client *</label>
+                                <input type="text" class="form-control" name="client_name" id="client_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" name="client_email" id="client_email">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_phone" class="form-label">Telefon</label>
+                                <input type="text" class="form-control" name="client_phone" id="client_phone">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_address" class="form-label">Alamat</label>
+                                <textarea class="form-control" name="client_address" id="client_address" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Details -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar me-2"></i>
+                        Detail Invoice
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="service_date" class="form-label">Tanggal Service *</label>
+                                <input type="date" class="form-control" name="service_date" id="service_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="issue_date" class="form-label">Tanggal Terbit *</label>
+                                <input type="date" class="form-control" name="issue_date" id="issue_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="due_date" class="form-label">Jatuh Tempo *</label>
+                                <input type="date" class="form-control" name="due_date" id="due_date" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Items -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Item Service
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="addServiceItem()">
+                        <i class="fas fa-plus me-1"></i>
+                        Tambah Item
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="serviceItems">
+                        <!-- Service items will be added here -->
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-8"></div>
+                        <div class="col-md-4">
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Subtotal:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <span id="subtotalDisplay">Rp 0</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label for="tax_rate">Pajak (%):</label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" class="form-control form-control-sm" name="tax_rate" id="tax_rate" value="0" min="0" max="100" onchange="calculateTotal()">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Total:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong><span id="totalDisplay">Rp 0</span></strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>
+                        Catatan
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control" name="notes" id="notes" rows="3" placeholder="Catatan tambahan untuk invoice..."></textarea>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('invoices') }}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>
+                    Batal
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>
+                    Simpan Invoice
+                </button>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="small text-muted mb-0">
+                        <li>Pastikan semua informasi client sudah benar</li>
+                        <li>Tambahkan item service dengan detail yang jelas</li>
+                        <li>Set tanggal jatuh tempo yang realistis</li>
+                        <li>Gunakan catatan untuk informasi tambahan</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+let itemCount = 0;
+
+function addServiceItem() {
+    itemCount++;
+    const itemsContainer = document.getElementById('serviceItems');
+    const itemHtml = `
+        <div class="row mb-3 service-item" id="item${itemCount}">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Deskripsi service" required onchange="updateItemData(${itemCount})">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" placeholder="Qty" min="1" value="1" required onchange="updateItemData(${itemCount})">
+            </div>
+            <div class="col-md-3">
+                <input type="number" class="form-control" placeholder="Rate/Harga" min="0" step="0.01" required onchange="updateItemData(${itemCount})">
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control" placeholder="Total" readonly>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeServiceItem(${itemCount})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    itemsContainer.insertAdjacentHTML('beforeend', itemHtml);
+}
+
+function removeServiceItem(itemId) {
+    document.getElementById(`item${itemId}`).remove();
+    calculateTotal();
+}
+
+function updateItemData(itemId) {
+    const item = document.getElementById(`item${itemId}`);
+    const inputs = item.querySelectorAll('input');
+    const qty = parseFloat(inputs[1].value) || 0;
+    const rate = parseFloat(inputs[2].value) || 0;
+    const amount = qty * rate;
+    
+    inputs[3].value = `Rp ${amount.toLocaleString('id-ID')}`;
+    
+    // Create hidden input for form submission
+    const description = inputs[0].value;
+    const itemData = {
+        description: description,
+        quantity: qty,
+        rate: rate,
+        amount: amount
+    };
+    
+    // Remove existing hidden input
+    const existingInput = item.querySelector('input[name="items"]');
+    if (existingInput) {
+        existingInput.remove();
+    }
+    
+    // Add new hidden input
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'items';
+    hiddenInput.value = JSON.stringify(itemData);
+    item.appendChild(hiddenInput);
+    
+    calculateTotal();
+}
+
+function calculateTotal() {
+    let subtotal = 0;
+    document.querySelectorAll('.service-item').forEach(item => {
+        const inputs = item.querySelectorAll('input');
+        const qty = parseFloat(inputs[1].value) || 0;
+        const rate = parseFloat(inputs[2].value) || 0;
+        subtotal += qty * rate;
+    });
+    
+    const taxRate = parseFloat(document.getElementById('tax_rate').value) || 0;
+    const taxAmount = subtotal * (taxRate / 100);
+    const total = subtotal + taxAmount;
+    
+    document.getElementById('subtotalDisplay').textContent = `Rp ${subtotal.toLocaleString('id-ID')}`;
+    document.getElementById('totalDisplay').textContent = `Rp ${total.toLocaleString('id-ID')}`;
+}
+
+// Set default dates
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const dueDate = nextMonth.toISOString().split('T')[0];
+    
+    document.getElementById('service_date').value = today;
+    document.getElementById('issue_date').value = today;
+    document.getElementById('due_date').value = dueDate;
+    
+    // Add first service item
+    addServiceItem();
+});
+</script>
+{% endblock %}
